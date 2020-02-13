@@ -25,8 +25,20 @@ class ComponentType(Enum):
     OTHER = 12
 
 
+class Dielectric(Enum):
+    NP0 = 0
+    X5R = 1
+    X7R = 2
+
+
+class CapUnits:
+    U = 0
+    N = 1
+    PF = 2
+
+
 @dataclass
-class SimpleComponent:
+class Component:
     component_type: ComponentType
     pn: str = ""
     footprint: str = ""
@@ -40,10 +52,10 @@ class SimpleComponent:
 @dataclass
 class Capacitor:
     value: float
-    unit: str
-    dielectric: str = ""
-    voltage: float = 6.3
-    tolerance: int = 100
+    unit: CapUnits
+    dielectric: List[Dielectric]
+    voltage: str = '6.3V'
+    tolerance: float = 1.0
 
 
 @dataclass
