@@ -55,8 +55,8 @@ class Capacitor:
     value: float
     unit: CapUnits
     dielectric: List[Dielectric]
-    voltage: str = '6.3V'
-    tolerance: float = 1.0
+    voltage: Optional[float] = 6.3
+    tolerance: Optional[float] = 1.0
 
 
 @dataclass
