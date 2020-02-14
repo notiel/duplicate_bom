@@ -72,33 +72,49 @@ def get_capacitor_value_and_unit(capacitor_str:  str) -> Tuple[Optional[Union[in
                                                                Optional[data_types.CapUnits],
                                                                Optional[List[data_types.Dielectric]]]:
     """
-
-    :param capacitor_str:
-    :return:
+    gets capacitor value, unit and dielectric
+    unit is nf, uf (micro) or pf
+    dielectric is X5R or X7R for uf and nf and np0 for pf
+    :param capacitor_str: string with capacitor description
+    :return: value, unit and dielectric or None
     """
     capacitor_str = capacitor_str.replace(',', '.').lower()
     convert = float if '.' in capacitor_str else int
-    if 'pf' in capacitor_str:
-        try:
+    try:
+        if 'pf' in capacitor_str:
             value = convert(capacitor_str.replace("pf", ""))
             return value, data_types.CapUnits.PF, [data_types.Dielectric.NP0]
-        except ValueError:
-            return None, None, None
-    capacitor_str = capacitor_str.replace('µ', 'u')
-    capacitor_str = capacitor_str.replace('f', '')
-    if 'u' in capacitor_str:
-        try:
+        capacitor_str = capacitor_str.replace('µ', 'u')
+        capacitor_str = capacitor_str.replace('f', '')
+        if 'u' in capacitor_str:
             value = convert(capacitor_str.replace("u", ""))
             return value, data_types.CapUnits.U, [data_types.Dielectric.X5R, data_types.Dielectric.X7R]
-        except ValueError:
-            return None, None, None
-    elif 'n' in capacitor_str:
-        try:
+        if 'n' in capacitor_str:
             value = convert(capacitor_str.replace("n", ""))
             return value, data_types.CapUnits.N, [data_types.Dielectric.X5R, data_types.Dielectric.X7R]
-        except ValueError:
-            return None, None, None
+    except ValueError:
+        return None, None, None
     return None, None, None
+
+
+def get_footprint_data(footprint_str: str, comp_type: data_types.ComponentType) -> str:
+    """
+    deletes unnecessary data from footprint
+    :param comp_type: type of component
+    :param footprint_str: footprint from BOM
+    :return: footprint without unnesessaty data
+    """
+    first_letter = {data_types.ComponentType.CAPACITOR: 'c',
+                    data_types.ComponentType.INDUCTOR: 'i',
+                    data_types.ComponentType.RESISTOR: 'r'}
+    for key in first_letter.keys():
+        if comp_type == key:
+            if footprint_str.lower().startswith(first_letter[key]):
+                return footprint_str[1:].split('_')[0]
+    if comp_type is data_types.ComponentType.CRYSTAL:
+        if footprint_str.lower().startswith('cry'):
+            return footprint_str[3:]
+    return footprint_str
 
 
 def get_components_from_xlxs(filename) -> List[data_types.Component]:
@@ -121,8 +137,8 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
         warning = 'The following columns are recommended but absent: ' + ', '.join(absent_headers)
     for row in range(1, sheet.max_row):
         comp_type = get_component_type(get_value('type', row, sheet, header_index))
-        component = data_types.Component(component_type=comp_type,
-                                         footprint=get_value('footprint', row, sheet, header_index),
+        footprint = get_footprint_data(get_value('footprint', row, sheet, header_index), comp_type)
+        component = data_types.Component(row=row, component_type=comp_type, footprint=footprint,
                                          pn=get_value('pn', row, sheet, header_index),
                                          manufacturer=get_value('manufacturer', row, sheet, header_index),
                                          designator=get_value('designator', row, sheet, header_index).split(', '),
@@ -147,12 +163,11 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
                                              voltage=get_value('voltage', row, sheet, header_index),
                                              tolerance=get_value('tolerance', row, sheet, header_index),
                                              dielectric=dielectric)
-            print(capacitor)
             component.details = capacitor
         elif comp_type == data_types.ComponentType.INDUCTOR:
             inductor = data_types.Inductor(value=get_value('value', row, sheet, header_index))
-            print(inductor)
             component.details = inductor
+        print(component)
         result.append(component)
     return result
 

@@ -39,6 +39,7 @@ class CapUnits:
 
 @dataclass
 class Component:
+    row: int
     component_type: ComponentType
     pn: str = ""
     footprint: str = ""
