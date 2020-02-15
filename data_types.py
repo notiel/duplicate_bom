@@ -25,6 +25,10 @@ class ComponentType(Enum):
     OTHER = 12
 
 
+# list of component types that could be compared by their parameters, not pn only
+parametrized = [ComponentType.RESISTOR, ComponentType.INDUCTOR, ComponentType.CAPACITOR]
+
+
 class Dielectric(Enum):
     NP0 = 0
     X5R = 1

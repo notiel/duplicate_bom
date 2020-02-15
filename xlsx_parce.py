@@ -104,6 +104,8 @@ def get_footprint_data(footprint_str: str, comp_type: data_types.ComponentType) 
     :param footprint_str: footprint from BOM
     :return: footprint without unnesessaty data
     """
+    if not footprint_str:
+        return ""
     first_letter = {data_types.ComponentType.CAPACITOR: 'c',
                     data_types.ComponentType.INDUCTOR: 'i',
                     data_types.ComponentType.RESISTOR: 'r'}
@@ -143,6 +145,8 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
                                          manufacturer=get_value('manufacturer', row, sheet, header_index),
                                          designator=get_value('designator', row, sheet, header_index).split(', '),
                                          description=get_value('description', row, sheet, header_index))
+        if not component.pn:
+            component.pn = ""
         if comp_type == data_types.ComponentType.RESISTOR:
             value = get_resistor_value(get_value('value', row, sheet, header_index))
             if not value:
@@ -172,7 +176,6 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
         elif comp_type == data_types.ComponentType.INDUCTOR:
             inductor = data_types.Inductor(value=get_value('value', row, sheet, header_index))
             component.details = inductor
-        print(component)
         result.append(component)
     return result
 
