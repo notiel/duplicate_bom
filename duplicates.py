@@ -42,12 +42,15 @@ def compare_pns(components: List[data_types.Component]):
                 if component.component_type == alternative_comp.component_type:
                     if (component.row, next_comp.row) not in equal:
                         alternative.append((component.row, alternative_comp.row))
-    print("These rows have equal pns")
-    print(equal)
-    print("These rows have similar pns")
-    print(similar)
-    print('These rows have similar alternative pn')
-    print(alternative)
+    if equal:
+        print("These rows have equal pns")
+        print(equal)
+    if similar:
+        print("These rows have similar pns")
+        print(similar)
+    if alternative:
+        print('These rows have similar alternative pn')
+        print(alternative)
     print(warning)
 
 
@@ -70,10 +73,36 @@ def compare_capacitors(components: List[data_types.Component]):
                 == cap.details.absolute_pf_value and cap_sorted[next_index].footprint == cap.footprint:
             similar_caps.append((cap.row, cap_sorted[next_index].row))
             next_index += 1
-    print("Similar capacitor rows: ")
-    print(similar_caps)
+    if similar_caps:
+        print("Similar capacitor rows: ")
+        print(similar_caps)
+
+
+def compare_resistors(components: List[data_types.Component]):
+    """
+    compare capacitors by value and footprint
+    :param components: list of components
+    :return:
+    """
+    similar_resistors: List[Tuple[int, int]] = list()
+    res_sorted: List[data_types.Component] = sorted([component for component in components
+                                                     if component.component_type == data_types.ComponentType.RESISTOR
+                                                     and component.details.value],
+                                                    key=lambda x: x.details.value)
+    if len(res_sorted) < 2:
+        return
+    for (index, res) in enumerate(res_sorted):
+        next_index = index + 1
+        while next_index < len(res_sorted) and res_sorted[next_index].details.value == res.details.value \
+            and res_sorted[next_index].footprint == res.footprint:
+            similar_resistors.append((res.row, res_sorted[next_index].row))
+            next_index += 1
+    if similar_resistors:
+        print("Similar resistor rows: ")
+        print(similar_resistors)
 
 
 components_list: List[data_types.Component] = xlsx_parce.get_components_from_xlxs('BOM_Test.xlsx')
 compare_pns(components_list)
 compare_capacitors(components_list)
+compare_resistors(components_list)
