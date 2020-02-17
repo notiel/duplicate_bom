@@ -58,6 +58,7 @@ class Component:
 class Capacitor:
     value: float
     unit: CapUnits
+    absolute_pf_value: Optional[Union[int, float]] # value in pfs
     dielectric: List[Dielectric]
     voltage: Optional[float] = 6.3
     tolerance: Optional[float] = 1.0

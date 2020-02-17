@@ -1,6 +1,6 @@
-# from openpyxl import Workbook
-from openpyxl import load_workbook
-from typing import List, Optional, Union, Tuple
+from openpyxl import Workbook
+from openpyxl import load_workbook, worksheet
+from typing import List, Optional, Union, Tuple, Any, Dict
 from string import ascii_uppercase
 
 import data_types
@@ -11,8 +11,10 @@ recommended = ['type', 'pn', 'designator', 'footprint', 'value']
 multiplier = {'m': 6, 'k': 3, 'r': 0}
 warning = ""
 
+Row = Tuple[worksheet.Worksheet, int, Dict[str, Optional[Any]]]
 
-def get_value(key: str, row: int, sheet, header_index) -> str:
+
+def get_value(key: str, sheet: worksheet, row: int,  header_index: Dict[str, Optional[int]]) -> str:
     """
     gets value from sheet row by the key
     :param row: row of value
@@ -28,7 +30,7 @@ def get_value(key: str, row: int, sheet, header_index) -> str:
 
 def get_component_type(comp_type_str: str) -> data_types.ComponentType:
     """
-    gets component type analazing string
+    gets component type analyzing string
     :param comp_type_str: field type from xlsx
     :return: type of component
     """
@@ -49,17 +51,20 @@ def get_resistor_value(resistor_str: str) -> Optional[Union[float, int]]:
     :param resistor_str:
     :return:
     """
+    # if resitor_str is already a digital value return itself
     if isinstance(resistor_str, float) or isinstance(resistor_str, int):
         return resistor_str
     resistor_str = resistor_str.replace(',', '.').lower()
+    # we have float value for str with . and int for others
     convert = float if '.' in resistor_str else int
     for key in multiplier.keys():
         if key in resistor_str:
             try:
+                # get a digital value,  multiply it according unit letter (r, k, m) and it place in string (47r != 4r7)
                 index = resistor_str.index(key)
                 tail = len(resistor_str) - index
-                value = convert(resistor_str[:index]+resistor_str[index+1:])
-                return value*10**(multiplier[key]-tail+1)
+                value = convert(resistor_str[:index] + resistor_str[index + 1:])
+                return value * 10 ** (multiplier[key] - tail + 1)
             except ValueError:
                 return None
     try:
@@ -68,33 +73,35 @@ def get_resistor_value(resistor_str: str) -> Optional[Union[float, int]]:
         return None
 
 
-def get_capacitor_value_and_unit(capacitor_str:  str) -> Tuple[Optional[Union[int, float]],
-                                                               Optional[data_types.CapUnits],
-                                                               Optional[List[data_types.Dielectric]]]:
+def get_capacitor_value_and_unit(capacitor_str: str) -> Tuple[Optional[Union[int, float]],
+                                                              Optional[data_types.CapUnits],
+                                                              Optional[List[data_types.Dielectric]],
+                                                              Optional[Union[int, float]]]:
     """
     gets capacitor value, unit and dielectric
     unit is nf, uf (micro) or pf
     dielectric is X5R or X7R for uf and nf and np0 for pf
     :param capacitor_str: string with capacitor description
-    :return: value, unit and dielectric or None
+    :return: value, unit and dielectric or None, absolute value in pfs
     """
     capacitor_str = capacitor_str.replace(',', '.').lower()
+    # we have float value for str with . and int for others
     convert = float if '.' in capacitor_str else int
     try:
         if 'pf' in capacitor_str:
             value = convert(capacitor_str.replace("pf", ""))
-            return value, data_types.CapUnits.PF, [data_types.Dielectric.NP0]
+            return value, data_types.CapUnits.PF, [data_types.Dielectric.NP0], value
         capacitor_str = capacitor_str.replace('µ', 'u')
         capacitor_str = capacitor_str.replace('f', '')
         if 'u' in capacitor_str:
             value = convert(capacitor_str.replace("u", ""))
-            return value, data_types.CapUnits.U, [data_types.Dielectric.X5R, data_types.Dielectric.X7R]
+            return value, data_types.CapUnits.U, [data_types.Dielectric.X5R, data_types.Dielectric.X7R], 10**6*value
         if 'n' in capacitor_str:
             value = convert(capacitor_str.replace("n", ""))
-            return value, data_types.CapUnits.N, [data_types.Dielectric.X5R, data_types.Dielectric.X7R]
+            return value, data_types.CapUnits.N, [data_types.Dielectric.X5R, data_types.Dielectric.X7R], 10**3*value
     except ValueError:
-        return None, None, None
-    return None, None, None
+        return None, None, None, None
+    return None, None, None, None
 
 
 def get_footprint_data(footprint_str: str, comp_type: data_types.ComponentType) -> str:
@@ -106,9 +113,10 @@ def get_footprint_data(footprint_str: str, comp_type: data_types.ComponentType) 
     """
     if not footprint_str:
         return ""
-    first_letter = {data_types.ComponentType.CAPACITOR: 'c',
-                    data_types.ComponentType.INDUCTOR: 'i',
-                    data_types.ComponentType.RESISTOR: 'r'}
+    first_letter: Dict[data_types.ComponentType, str] = {data_types.ComponentType.CAPACITOR: 'c',
+                                                         data_types.ComponentType.INDUCTOR: 'i',
+                                                         data_types.ComponentType.RESISTOR: 'r'}
+    # remove type letter for capacitors/inductors/resistors and turn first part before _
     for key in first_letter.keys():
         if comp_type == key:
             if footprint_str.lower().startswith(first_letter[key]):
@@ -119,6 +127,87 @@ def get_footprint_data(footprint_str: str, comp_type: data_types.ComponentType) 
     return footprint_str
 
 
+def get_headers(sheet: Workbook) -> Dict[str, Optional[int]]:
+    """
+    get header indexes
+    :param sheet: sheet with data
+    :return:
+    """
+    header_index: Dict[str, Optional[str]] = dict.fromkeys(headers, None)
+    for col in ascii_uppercase:
+        col_header: str = sheet['%s1' % col].value
+        if col_header and col_header.lower() in headers:
+            header_index[col_header.lower()] = ascii_uppercase.index(col) + 1
+    absent_headers: List[str] = [header for header in recommended if not header_index[header]]
+    if absent_headers:
+        global warning
+        warning = 'The following columns are recommended but absent: ' + ', '.join(absent_headers)
+    return header_index
+
+
+def get_resistor_data(row_addr: Row) -> data_types.Resistor:
+    """
+    gets resistor data from sheet
+    :param row_addr:
+    :return: resistor instance
+    """
+    value = get_resistor_value(get_value('value', *row_addr))
+    if not value:
+        global warning
+        warning += 'Wrong resistor value at %i row\n' % row_addr[1]
+    resistor = data_types.Resistor(value=value, tolerance=get_value('tolerance', *row_addr))
+    return resistor
+
+
+def get_capacitor_data(row_addr: Row) -> data_types.Capacitor:
+    """
+    get capacitor data from bom row
+    :param row_addr: row address
+    :return:
+    """
+    value, unit, dielectric, abs_value = get_capacitor_value_and_unit(get_value('value', *row_addr))
+    if not value:
+        global warning
+        warning += 'Wrong capacitor value at %i row\n' % row_addr[1]
+    dielectric_bom = get_value('dielectric', *row_addr)
+    if dielectric_bom:
+        if not dielectric_bom.lower() in data_types.dielectrics \
+                or data_types.Dielectric(data_types.dielectrics.index(dielectric_bom.lower())) not in dielectric:
+            warning += 'Dielectric from BOM does not match capacitor value in %i row\n' % row_addr[1]
+    try:
+        voltage = get_value('voltage', *row_addr).lower().replace("v", "")
+    except (ValueError, AttributeError):
+        voltage = None
+    try:
+        tolerance = float(get_value('tolerance', *row_addr))
+    except (ValueError, AttributeError, TypeError):
+        tolerance = None
+    capacitor = data_types.Capacitor(value=value, unit=unit, voltage=voltage, tolerance=tolerance,
+                                     dielectric=dielectric, absolute_pf_value=abs_value)
+    return capacitor
+
+
+def get_main_comp_data(row_addr: Row) -> data_types.Component:
+    """
+    gets main component data from xlsx
+    :param row_addr:
+    :return:
+    """
+    comp_type = get_component_type(get_value('type', *row_addr))
+    footprint = get_footprint_data(get_value('footprint', *row_addr), comp_type)
+    pn_alternative = [get_value('pn alternative 1', *row_addr),
+                      get_value('pn alternative 2', *row_addr)]
+    pn_alternative = [x for x in pn_alternative if x]
+    component = data_types.Component(row=row_addr[1], component_type=comp_type, footprint=footprint,
+                                     pn=get_value('pn', *row_addr),
+                                     manufacturer=get_value('manufacturer', *row_addr),
+                                     designator=get_value('designator', *row_addr).split(', '),
+                                     description=get_value('description', *row_addr),
+                                     pn_alt=pn_alternative)
+    if not component.pn:
+        component.pn = ""
+    return component
+
 def get_components_from_xlxs(filename) -> List[data_types.Component]:
     """
     parce Bom to get component list
@@ -128,57 +217,18 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
     wb = load_workbook(filename=filename)
     sheet = wb.active
     result: List[data_types.Component] = list()
-    header_index = dict.fromkeys(headers, None)
-    for col in ascii_uppercase:
-        col_header = sheet['%s1' % col].value
-        if col_header and col_header.lower() in headers:
-            header_index[col_header.lower()] = ascii_uppercase.index(col) + 1
-    absent_headers = [header for header in recommended if not header_index[header]]
-    if absent_headers:
-        global warning
-        warning = 'The following columns are recommended but absent: ' + ', '.join(absent_headers)
+    header_index = get_headers(sheet)
     for row in range(1, sheet.max_row):
-        comp_type = get_component_type(get_value('type', row, sheet, header_index))
-        footprint = get_footprint_data(get_value('footprint', row, sheet, header_index), comp_type)
-        pn_alternative = [get_value('pn alternative 1', row, sheet, header_index),
-                          get_value('pn alternative 2', row, sheet, header_index)]
-        pn_alternative = [x for x in pn_alternative if x]
-        component = data_types.Component(row=row, component_type=comp_type, footprint=footprint,
-                                         pn=get_value('pn', row, sheet, header_index),
-                                         manufacturer=get_value('manufacturer', row, sheet, header_index),
-                                         designator=get_value('designator', row, sheet, header_index).split(', '),
-                                         description=get_value('description', row, sheet, header_index),
-                                         pn_alt=pn_alternative)
-        if not component.pn:
-            component.pn = ""
-        if comp_type == data_types.ComponentType.RESISTOR:
-            value = get_resistor_value(get_value('value', row, sheet, header_index))
-            if not value:
-                warning += 'Wrong resistor value at %i row\n' % row
-            resistor = data_types.Resistor(value=value, tolerance=get_value('tolerance', row, sheet, header_index))
+        row_addr: Row = (sheet, row, header_index)
+        component = get_main_comp_data(row_addr)
+        if component.component_type == data_types.ComponentType.RESISTOR:
+            resistor = get_resistor_data(row_addr)
             component.details = resistor
-        elif comp_type == data_types.ComponentType.CAPACITOR:
-            value, unit, dielectric = get_capacitor_value_and_unit(get_value('value', row, sheet, header_index))
-            if not value:
-                warning += 'Wrong capacitor value at %i row\n' % row
-            dielectric_bom = get_value('dielectric', row, sheet, header_index)
-            if dielectric_bom:
-                if not dielectric_bom.lower() in data_types.dielectrics\
-                        or data_types.Dielectric(data_types.dielectrics.index(dielectric_bom.lower()) )not in dielectric:
-                    warning += 'Dielectric from BOM does not match capacitor value in %i row\n' % row
-            try:
-                voltage = get_value('voltage', row, sheet, header_index).lower().replace("v", "")
-            except (ValueError, AttributeError):
-                voltage = None
-            try:
-                tolerance = float(get_value('tolerance', row, sheet, header_index))
-            except (ValueError, AttributeError, TypeError):
-                tolerance = None
-            capacitor = data_types.Capacitor(value=value, unit=unit, voltage=voltage, tolerance=tolerance,
-                                             dielectric=dielectric)
+        elif component.component_type == data_types.ComponentType.CAPACITOR:
+            capacitor = get_capacitor_data(row_addr)
             component.details = capacitor
-        elif comp_type == data_types.ComponentType.INDUCTOR:
-            inductor = data_types.Inductor(value=get_value('value', row, sheet, header_index))
+        elif component.component_type == data_types.ComponentType.INDUCTOR:
+            inductor = data_types.Inductor(value=get_value('value', *row_addr))
             component.details = inductor
         result.append(component)
     return result
