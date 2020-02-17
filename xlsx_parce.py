@@ -115,7 +115,7 @@ def get_footprint_data(footprint_str: str, comp_type: data_types.ComponentType) 
                 return footprint_str[1:].split('_')[0]
     if comp_type is data_types.ComponentType.CRYSTAL:
         if footprint_str.lower().startswith('cry'):
-            return footprint_str[3:]
+            return footprint_str[4:]
     return footprint_str
 
 
@@ -140,11 +140,15 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
     for row in range(1, sheet.max_row):
         comp_type = get_component_type(get_value('type', row, sheet, header_index))
         footprint = get_footprint_data(get_value('footprint', row, sheet, header_index), comp_type)
+        pn_alternative = [get_value('pn alternative 1', row, sheet, header_index),
+                          get_value('pn alternative 2', row, sheet, header_index)]
+        pn_alternative = [x for x in pn_alternative if x]
         component = data_types.Component(row=row, component_type=comp_type, footprint=footprint,
                                          pn=get_value('pn', row, sheet, header_index),
                                          manufacturer=get_value('manufacturer', row, sheet, header_index),
                                          designator=get_value('designator', row, sheet, header_index).split(', '),
-                                         description=get_value('description', row, sheet, header_index))
+                                         description=get_value('description', row, sheet, header_index),
+                                         pn_alt=pn_alternative)
         if not component.pn:
             component.pn = ""
         if comp_type == data_types.ComponentType.RESISTOR:

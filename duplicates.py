@@ -2,15 +2,20 @@ import xlsx_parce
 import data_types
 from typing import List, Tuple
 
+# number of symbols that must be equal in pns
+root = 8
+tail = 4
+
 
 def compare_pns(components: List[data_types.Component]):
     """
-    
+    compares all rows and gets similar pns
     :param components: 
     :return: 
     """
     equal: List[Tuple[int, int]] = list()
     similar: List[Tuple[int, int]] = list()
+    alternative: List[Tuple[int, int]] = list()
     warning: str = ""
     sorted_components = sorted(components, key=lambda x: x.pn)
     # remove components without pns, we can not compare them by pn
@@ -22,15 +27,28 @@ def compare_pns(components: List[data_types.Component]):
             if component.component_type != next_comp.component_type or component.footprint != next_comp.footprint:
                 warning += "Components in rows %i and %i have same partnumbers but different type or footprint" % \
                            (component.row, next_comp.row)
+            equal.append((component.row, next_comp.row))
         if component.component_type not in data_types.parametrized and len(component.footprint) >= 4:
             next_index = index + 1
-            while next_index < len(sorted_components) and sorted_components[next_index].pn.startswith(component.pn[:7]):
+            while next_index < len(sorted_components) and \
+                    sorted_components[next_index].pn.startswith(component.pn[:root+1]):
                 if component.footprint == sorted_components[next_index].footprint:
                     if component.component_type == sorted_components[next_index].component_type:
                         similar.append((component.row, sorted_components[next_index].row))
                 next_index += 1
-    print(similar)
+        for alternative_comp in components:
+            crosses = [alt for alt in alternative_comp.pn_alt if component.pn in alt]
+            if crosses and component.row != alternative_comp.row:
+                if component.component_type == alternative_comp.component_type:
+                    if (component.row, next_comp.row) not in equal:
+                        alternative.append((component.row, alternative_comp.row))
+    print("These rows have equal pns")
     print(equal)
+    print("These rows have similar pns")
+    print(similar)
+    print('These rows have similar alternative pn')
+    print(alternative)
+    print(warning)
 
 
 components_list: List[data_types.Component] = xlsx_parce.get_components_from_xlxs('BOM_Test.xlsx')
