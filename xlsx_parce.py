@@ -2,6 +2,7 @@ from openpyxl import Workbook
 from openpyxl import load_workbook, worksheet
 from typing import List, Optional, Union, Tuple, Any, Dict
 from string import ascii_uppercase
+import os
 
 import data_types
 
@@ -187,7 +188,7 @@ def get_capacitor_data(row_addr: Row) -> data_types.Capacitor:
     return capacitor
 
 
-def get_main_comp_data(row_addr: Row) -> data_types.Component:
+def get_main_comp_data(row_addr: Row,) -> data_types.Component:
     """
     gets main component data from xlsx
     :param row_addr:
@@ -222,6 +223,7 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
     for row in range(1, sheet.max_row):
         row_addr: Row = (sheet, row, header_index)
         component = get_main_comp_data(row_addr)
+        component.filename = os.path.basename(filename)
         if component.component_type == data_types.ComponentType.RESISTOR:
             resistor = get_resistor_data(row_addr)
             component.details = resistor

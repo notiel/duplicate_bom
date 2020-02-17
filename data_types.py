@@ -48,6 +48,7 @@ class Component:
     pn: str = ""
     footprint: str = ""
     manufacturer: str = ""
+    filename = ""
     pn_alt: List[str] = field(default_factory=list)
     designator: List[str] = field(default_factory=list)
     description: str = ""
