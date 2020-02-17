@@ -208,6 +208,7 @@ def get_main_comp_data(row_addr: Row) -> data_types.Component:
         component.pn = ""
     return component
 
+
 def get_components_from_xlxs(filename) -> List[data_types.Component]:
     """
     parce Bom to get component list

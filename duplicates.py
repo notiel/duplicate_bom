@@ -51,5 +51,29 @@ def compare_pns(components: List[data_types.Component]):
     print(warning)
 
 
+def compare_capacitors(components: List[data_types.Component]):
+    """
+    compare capacitors by value and footprint
+    :param components:
+    :return:
+    """
+    similar_caps: List[Tuple[int, int]] = list()
+    cap_sorted: List[data_types.Component] = sorted([component for component in components
+                                                     if component.component_type == data_types.ComponentType.CAPACITOR
+                                                     and component.details.absolute_pf_value],
+                                                    key=lambda x: x.details.absolute_pf_value)
+    if len(cap_sorted) < 2:
+        return
+    for (index, cap) in enumerate(cap_sorted):
+        next_index = index + 1
+        while next_index < len(cap_sorted) and cap_sorted[next_index].details.absolute_pf_value \
+                == cap.details.absolute_pf_value and cap_sorted[next_index].footprint == cap.footprint:
+            similar_caps.append((cap.row, cap_sorted[next_index].row))
+            next_index += 1
+    print("Similar capacitor rows: ")
+    print(similar_caps)
+
+
 components_list: List[data_types.Component] = xlsx_parce.get_components_from_xlxs('BOM_Test.xlsx')
 compare_pns(components_list)
+compare_capacitors(components_list)
