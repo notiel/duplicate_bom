@@ -1,11 +1,12 @@
 import duplicates
+import compare_boms
 import xlsx_parce
 import data_types
 import os
 import sys
 from typing import List
 
-if __name__ == '__main__':
+def find_similar():
     path = sys.argv[1] if len(sys.argv) >= 2 else '.'
     if os.path.exists(path):
         if os.path.isdir(path):
@@ -25,3 +26,24 @@ if __name__ == '__main__':
         print("Search in %s complited" % path)
     else:
         print("Incorrect filename")
+
+
+def compare_boms_new_pns():
+    """
+
+    :return:
+    """
+    if len(sys.argv) != 3:
+        print("Wrong params: two bom files to compare expected")
+        return
+    if not os.path.exists(sys.argv[1]) or not os.path.exists(sys.argv[2]) or os.path.isdir(sys.argv[1]) \
+            or os.path.isdir(sys.argv[2]):
+        print("Both files should be existing files (not folders)")
+        return 
+    old = xlsx_parce.get_components_from_xlxs(sys.argv[1])
+    new = xlsx_parce.get_components_from_xlxs(sys.argv[2])
+    compare_boms.find_new_pns(old, new)
+
+
+if __name__ == '__main__':
+    compare_boms_new_pns()

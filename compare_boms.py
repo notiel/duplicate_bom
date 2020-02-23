@@ -14,11 +14,11 @@ def get_comp_list_precise(components: List[data_types.Component]) -> Tuple[List[
     """
     pns = [(component.pn, component.footprint) for component in components
            if component.component_type not in data_types.parametrized]
-    capacitors = [(component.details.value, component.details.footprint) for component in components
+    capacitors = [(component.details.value, component.footprint) for component in components
                   if component.component_type == data_types.ComponentType.CAPACITOR]
-    resistors = [(component.details.value, component.details.footprint) for component in components
+    resistors = [(component.details.value, component.footprint) for component in components
                  if component.component_type == data_types.ComponentType.RESISTOR]
-    inductors = [(component.details.value, component.details.footprint) for component in components
+    inductors = [(component.details.value, component.footprint) for component in components
                  if component.component_type == data_types.ComponentType.INDUCTOR]
     return pns, capacitors, resistors, inductors
 
