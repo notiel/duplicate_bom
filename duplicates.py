@@ -1,8 +1,5 @@
-import xlsx_parce
 import data_types
 from typing import List, Tuple
-import sys
-import os
 
 # number of symbols that must be equal in pns
 root = 8
@@ -108,26 +105,10 @@ def compare_resistors(components: List[data_types.Component]):
         print(similar_resistors)
 
 
-if __name__ == '__main__':
-    if len(sys.argv) >= 2:
-        if os.path.exists(sys.argv[1]):
-            if os.path.isdir(sys.argv[1]):
-                folder = sys.argv[1]
-                components_list: List[data_types.Component] = list()
-                for filename in os.listdir(folder):
-                    if os.path.splitext(filename)[1].lower() == '.xlsx' \
-                            and os.access(os.path.join(folder, filename), os.R_OK):
-                        try:
-                            components_list.extend(xlsx_parce.get_components_from_xlxs(os.path.join(folder, filename)))
-                        except PermissionError:
-                            pass
-            else:
-                components_list: List[data_types.Component] = xlsx_parce.get_components_from_xlxs(sys.argv[1])
-            compare_pns(components_list)
-            compare_capacitors(components_list)
-            compare_resistors(components_list)
-            print("Search complited")
-        else:
-            print("Incorrect filename")
-    else:
-        print("No file")
+def compare_lists_full(comp1: List[data_types.Component], comp2: List[data_types.Component]):
+    """
+
+    :param comp1:
+    :param comp2:
+    :return:
+    """
