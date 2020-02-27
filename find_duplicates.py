@@ -6,6 +6,7 @@ import os
 import sys
 from typing import List
 
+
 def find_similar():
     path = sys.argv[1] if len(sys.argv) >= 2 else '.'
     if os.path.exists(path):
@@ -20,7 +21,7 @@ def find_similar():
                         pass
         else:
             components_list: List[data_types.Component] = xlsx_parce.get_components_from_xlxs(path)
-        duplicates.compare_pns(components_list)
+        duplicates.compare_pns(components_list, root_len=8, precise=False)
         duplicates.compare_capacitors(components_list)
         duplicates.compare_resistors(components_list)
         print("Search in %s complited" % path)
@@ -39,7 +40,7 @@ def compare_boms_new_pns():
     if not os.path.exists(sys.argv[1]) or not os.path.exists(sys.argv[2]) or os.path.isdir(sys.argv[1]) \
             or os.path.isdir(sys.argv[2]):
         print("Both files should be existing files (not folders)")
-        return 
+        return
     old = xlsx_parce.get_components_from_xlxs(sys.argv[1])
     new = xlsx_parce.get_components_from_xlxs(sys.argv[2])
     compare_boms.find_new_pns(old, new)

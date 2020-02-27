@@ -1,5 +1,6 @@
 import data_types
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
+import duplicates
 
 ParamData = Tuple[Union[float, str], str]
 
@@ -63,3 +64,76 @@ def find_new_pns(old: List[data_types.Component], new: List[data_types.Component
     print_diff_data(old_cap, new_cap, "capacitors")
     print_diff_data(old_res, new_res, "resistors")
     print_diff_data(old_ind, new_ind, "inductors")
+
+
+def join_the_same(components: List[data_types.Component]):
+    """
+    joins the same components and changes list at the place
+    :param components: 
+    :return: 
+    """
+    similar = duplicates.compare_pns(components, precise=True)
+    similar_sorted = sorted(similar, key=lambda x: x[3], reverse=True)
+    for pair in similar_sorted:
+        first_index = pair[2]
+        second_index = pair[5]
+        components[first_index].designator.extend(components[second_index].designator)
+        components[first_index].description += components[second_index].description
+    for pair in similar_sorted:
+        components.pop(pair[5])
+
+
+def find_components_in_list(key_component: data_types.Component, components: List[data_types.Component]) \
+        -> Optional[data_types.Component]:
+    """
+    finds component in components and returns its index
+    :param key_component: component to find
+    :param components: list of components
+    :return: component or None
+    """
+    if key_component.component_type not in data_types.parametrized:
+        for component in components:
+            if component.pn.lower() == key_component.pn.lower():
+                if component.footprint.lower() == key_component.footprint.lower():
+                    return component
+        return None
+    if key_component.component_type == data_types.ComponentType.CAPACITOR:
+        for component in components:
+            if component.details.absolute_pf_value == key_component.details.absolute_pf_value:
+                if component.footprint == key_component.footprint:
+                    return component
+        return None
+    if key_component.component_type in [data_types.ComponentType.RESISTOR, data_types.ComponentType.INDUCTOR]:
+        for component in components:
+            if component.details.value == key_component.details.value:
+                if component.footprint == key_component.footprint:
+                    if component.component_type == key_component.component_type:
+                        return component
+        return None
+
+
+def detail_compare(old: List[data_types.Component], new: List[data_types.Component]):
+    """
+    compare two list
+    :param old:
+    :param new:
+    :return:
+    """
+    join_the_same(old)
+    join_the_same(new)
+    old_sorted = sorted(old, key=lambda x: x.row)
+    for component in old_sorted:
+        paired = find_components_in_list(component, new)
+        if paired:
+            warning = ""
+            if component.component_type != paired.component_type:
+                warning += "Type: was %s and now %s\n" % \
+                           (data_types.types[component.component_type], data_types.types[paired.component_type])
+            if component.manufacturer != paired.manufacturer:
+                warning += "Manufacturer: was %s and now %s\n" % (component.manufacturer, paired.manufacturer)
+
+            if component.description.lower() != paired.description.lower():
+                warning += "Description: was %s and now %s\n" % (component.description, paired.description)
+            if warning:
+                print("For component with pn %s, old row %i, new row %i changes are the following: \n" %
+                      (component.pn, component.row, paired.row) + warning)

@@ -6,15 +6,17 @@ root = 8
 tail = 4
 
 
-def compare_pns(components: List[data_types.Component]):
+def compare_pns(components: List[data_types.Component], root_len: int = 8, precise: bool = False):
     """
     compares all rows and gets similar pns
-    :param components: 
+    :param precise: use precise comparizon of pns only
+    :param root_len: len of common components part
+    :param components:
     :return: 
     """
-    equal: List[Tuple[str, int, str, int]] = list()
-    similar: List[Tuple[str, int, str, int]] = list()
-    alternative: List[Tuple[str, int, str, int]] = list()
+    equal: List[Tuple[str, int, int, str, int, int]] = list()
+    similar: List[Tuple[str, int, int, str, int, int]] = list()
+    alternative: List[Tuple[str, int, int, str, int, int]] = list()
     warning: str = ""
     sorted_components = sorted(components, key=lambda x: x.pn)
     # remove components without pns, we can not compare them by pn
@@ -26,32 +28,35 @@ def compare_pns(components: List[data_types.Component]):
             if component.component_type != next_comp.component_type or component.footprint != next_comp.footprint:
                 warning += "Components in file %s row %i and  file %s row %i have same partnumbers but different " \
                            "type or footprint" % (component.filename, component.row, next_comp.filename, next_comp.row)
-            equal.append((component.filename, component.row, next_comp.filename, next_comp.row))
-        if component.component_type not in data_types.parametrized and len(component.footprint) >= 4:
-            next_index = index + 1
-            while next_index < len(sorted_components) and \
-                    sorted_components[next_index].pn.startswith(component.pn[:root + 1]):
-                if component.footprint == sorted_components[next_index].footprint:
-                    if component.component_type == sorted_components[next_index].component_type:
-                        similar.append((component.filename, component.row, sorted_components[next_index].filename,
-                                        sorted_components[next_index].row))
-                next_index += 1
+            equal.append((component.filename, component.row, index, next_comp.filename, next_comp.row, index+1))
+        if not precise:
+            if component.component_type not in data_types.parametrized and len(component.footprint) >= 4:
+                next_index = index + 1
+                while next_index < len(sorted_components) and \
+                        sorted_components[next_index].pn.startswith(component.pn[:root + 1]):
+                    if component.footprint == sorted_components[next_index].footprint:
+                        if component.component_type == sorted_components[next_index].component_type:
+                            similar.append((component.filename, component.row, index,
+                                            sorted_components[next_index].filename, sorted_components[next_index].row,
+                                            next_index))
+                    next_index += 1
         for alternative_comp in components:
             crosses = [alt for alt in alternative_comp.pn_alt if component.pn in alt]
             if crosses and component.row != alternative_comp.row:
                 if component.component_type == alternative_comp.component_type:
                     if (component.row, next_comp.row) not in equal:
-                        alternative.append((component.filename, component.row,
-                                            alternative_comp.filename, alternative_comp.row))
+                        alternative.append((component.filename, component.row, index,
+                                            alternative_comp.filename, alternative_comp.row,
+                                            components.index(alternative_comp)))
     if equal:
         print("These rows have equal pns")
-        print(equal)
+        print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in equal])
     if similar:
         print("These rows have similar pns")
-        print(similar)
+        print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in similar])
     if alternative:
         print('These rows have similar alternative pn')
-        print(alternative)
+        print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in alternative])
     print(warning)
 
 
@@ -103,12 +108,3 @@ def compare_resistors(components: List[data_types.Component]):
     if similar_resistors:
         print("Similar resistor rows: ")
         print(similar_resistors)
-
-
-def compare_lists_full(comp1: List[data_types.Component], comp2: List[data_types.Component]):
-    """
-
-    :param comp1:
-    :param comp2:
-    :return:
-    """
