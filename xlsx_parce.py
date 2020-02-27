@@ -1,3 +1,5 @@
+# xlsx BOM file parcing for find_duplicates
+
 from openpyxl import Workbook
 from openpyxl import load_workbook, worksheet
 from typing import List, Optional, Union, Tuple, Any, Dict
@@ -35,6 +37,8 @@ def get_component_type(comp_type_str: str) -> data_types.ComponentType:
     :param comp_type_str: field type from xlsx
     :return: type of component
     """
+    if not comp_type_str:
+        return data_types.ComponentType.OTHER
     for comp_type in data_types.types:
         if comp_type.lower() in comp_type_str.lower():
             return data_types.ComponentType(data_types.types.index(comp_type))

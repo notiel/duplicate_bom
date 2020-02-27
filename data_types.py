@@ -1,3 +1,4 @@
+# module with data tyoes for comparing boms
 from enum import Enum
 from typing import List, Union, Optional
 

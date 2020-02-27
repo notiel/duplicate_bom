@@ -1,3 +1,5 @@
+# service module for comparing boms
+
 import data_types
 from typing import List, Tuple, Union, Optional, Any
 import duplicates

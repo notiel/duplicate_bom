@@ -1,3 +1,5 @@
+# module for finding similar components for find_duplicates script
+
 import data_types
 from typing import List, Tuple
 
@@ -59,7 +61,6 @@ def compare_pns(components: List[data_types.Component], root_len: int = 8, preci
         print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in alternative])
     print(warning)
     return equal
-
 
 
 def compare_capacitors(components: List[data_types.Component]):

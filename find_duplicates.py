@@ -1,3 +1,7 @@
+# main script for comparing BOM's and finding duplicates
+# run with parameters «--compare filename1 filename2» to compare two BOMs
+#                     «--duplicate path» to find duplicates in path
+
 import duplicates
 import compare_boms
 import xlsx_parce
@@ -8,7 +12,7 @@ from typing import List
 
 
 def find_similar():
-    path = sys.argv[1] if len(sys.argv) >= 2 else '.'
+    path = sys.argv[2] if len(sys.argv) >= 3 else '.'
     if os.path.exists(path):
         if os.path.isdir(path):
             components_list: List[data_types.Component] = list()
@@ -34,15 +38,15 @@ def compare_boms_new_pns(detailed=False):
 
     :return:
     """
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         print("Wrong params: two bom files to compare expected")
         return
-    if not os.path.exists(sys.argv[1]) or not os.path.exists(sys.argv[2]) or os.path.isdir(sys.argv[1]) \
-            or os.path.isdir(sys.argv[2]):
+    if not os.path.exists(sys.argv[2]) or not os.path.exists(sys.argv[3]) or os.path.isdir(sys.argv[2]) \
+            or os.path.isdir(sys.argv[3]):
         print("Both files should be existing files (not folders)")
         return
-    old = xlsx_parce.get_components_from_xlxs(sys.argv[1])
-    new = xlsx_parce.get_components_from_xlxs(sys.argv[2])
+    old = xlsx_parce.get_components_from_xlxs(sys.argv[2])
+    new = xlsx_parce.get_components_from_xlxs(sys.argv[3])
     if detailed:
         compare_boms.detail_compare(old, new)
     else:
@@ -50,7 +54,11 @@ def compare_boms_new_pns(detailed=False):
 
 
 if __name__ == '__main__':
-    # compare_boms_new_pns(True)
-    # find_similar()
-    compare_boms_new_pns()
-
+    if len(sys.argv) < 3:
+        print("Parameters are missing, need type parameters and 1 or 2 filenames")
+    if sys.argv[1].lower() == '--compare':
+        compare_boms_new_pns()
+    elif sys.argv[1].lower() == '--duplicates':
+        find_similar()
+    else:
+        print("Wrong parameter")
