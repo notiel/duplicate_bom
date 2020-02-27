@@ -1,5 +1,5 @@
 import data_types
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union, Optional, Any
 import duplicates
 
 ParamData = Tuple[Union[float, str], str]
@@ -24,7 +24,7 @@ def get_comp_list_precise(components: List[data_types.Component]) -> Tuple[List[
     return pns, capacitors, resistors, inductors
 
 
-def get_diff(first: List[ParamData], second: List[ParamData]):
+def get_diff(first: List[Any], second: List[Any]):
     """
     gets difference between two sets
     :param first: first set
@@ -97,14 +97,16 @@ def find_components_in_list(key_component: data_types.Component, components: Lis
                 if component.footprint.lower() == key_component.footprint.lower():
                     return component
         return None
+    same_time_components = [component for component in components
+                            if component.component_type == key_component.component_type]
     if key_component.component_type == data_types.ComponentType.CAPACITOR:
-        for component in components:
+        for component in same_time_components:
             if component.details.absolute_pf_value == key_component.details.absolute_pf_value:
                 if component.footprint == key_component.footprint:
                     return component
         return None
     if key_component.component_type in [data_types.ComponentType.RESISTOR, data_types.ComponentType.INDUCTOR]:
-        for component in components:
+        for component in same_time_components:
             if component.details.value == key_component.details.value:
                 if component.footprint == key_component.footprint:
                     if component.component_type == key_component.component_type:
@@ -132,6 +134,13 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
             if component.manufacturer != paired.manufacturer:
                 warning += "Manufacturer: was %s and now %s\n" % (component.manufacturer, paired.manufacturer)
 
+            # component.designator.sort(key=lambda x: int(x[1:]))
+            # paired.designator.sort(key=lambda x: int(x[1:]))
+            plus, minus = get_diff(component.designator, paired.designator)
+            if plus:
+                warning += "Following designators added: %s" % ", ".join(plus)
+            if minus:
+                warning += "Following designators removed: %s" % ", ".join(minus)
             if component.description.lower() != paired.description.lower():
                 warning += "Description: was %s and now %s\n" % (component.description, paired.description)
             if warning:

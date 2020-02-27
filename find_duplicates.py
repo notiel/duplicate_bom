@@ -29,7 +29,7 @@ def find_similar():
         print("Incorrect filename")
 
 
-def compare_boms_new_pns():
+def compare_boms_new_pns(detailed=False):
     """
 
     :return:
@@ -43,8 +43,14 @@ def compare_boms_new_pns():
         return
     old = xlsx_parce.get_components_from_xlxs(sys.argv[1])
     new = xlsx_parce.get_components_from_xlxs(sys.argv[2])
-    compare_boms.find_new_pns(old, new)
+    if detailed:
+        compare_boms.detail_compare(old, new)
+    else:
+        compare_boms.find_new_pns(old, new)
 
 
 if __name__ == '__main__':
+    # compare_boms_new_pns(True)
+    # find_similar()
     compare_boms_new_pns()
+

@@ -24,16 +24,16 @@ def compare_pns(components: List[data_types.Component], root_len: int = 8, preci
     for (index, component) in enumerate(sorted_components[:-1]):
         next_comp = sorted_components[index + 1]
         if component.pn.lower() == next_comp.pn.lower():
-            similar.append((component.filename, component.row, next_comp.filename, next_comp.row))
+            similar.append((component.filename, component.row, index, next_comp.filename, next_comp.row, index+1))
             if component.component_type != next_comp.component_type or component.footprint != next_comp.footprint:
                 warning += "Components in file %s row %i and  file %s row %i have same partnumbers but different " \
                            "type or footprint" % (component.filename, component.row, next_comp.filename, next_comp.row)
-            equal.append((component.filename, component.row, index, next_comp.filename, next_comp.row, index+1))
+                equal.append((component.filename, component.row, index, next_comp.filename, next_comp.row, index+1))
         if not precise:
             if component.component_type not in data_types.parametrized and len(component.footprint) >= 4:
                 next_index = index + 1
                 while next_index < len(sorted_components) and \
-                        sorted_components[next_index].pn.startswith(component.pn[:root + 1]):
+                        sorted_components[next_index].pn.startswith(component.pn[:root_len + 1]):
                     if component.footprint == sorted_components[next_index].footprint:
                         if component.component_type == sorted_components[next_index].component_type:
                             similar.append((component.filename, component.row, index,
@@ -58,6 +58,8 @@ def compare_pns(components: List[data_types.Component], root_len: int = 8, preci
         print('These rows have similar alternative pn')
         print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in alternative])
     print(warning)
+    return equal
+
 
 
 def compare_capacitors(components: List[data_types.Component]):
