@@ -25,7 +25,16 @@ def find_similar():
                         pass
         else:
             components_list: List[data_types.Component] = xlsx_parce.get_components_from_xlxs(path)
-        duplicates.compare_pns(components_list, root_len=8, precise=False)
+        equal, similar, alternative = duplicates.compare_pns(components_list, root_len=8, precise=False)
+        if equal:
+            print("These rows have equal pns")
+            print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in equal])
+        if similar:
+            print("These rows have similar pns")
+            print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in similar])
+        if alternative:
+            print('These rows have similar alternative pn')
+            print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in alternative])
         duplicates.compare_capacitors(components_list)
         duplicates.compare_resistors(components_list)
         print("Search in %s complited" % path)

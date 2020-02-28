@@ -50,17 +50,8 @@ def compare_pns(components: List[data_types.Component], root_len: int = 8, preci
                         alternative.append((component.filename, component.row, index,
                                             alternative_comp.filename, alternative_comp.row,
                                             components.index(alternative_comp)))
-    if equal:
-        print("These rows have equal pns")
-        print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in equal])
-    if similar:
-        print("These rows have similar pns")
-        print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in similar])
-    if alternative:
-        print('These rows have similar alternative pn')
-        print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in alternative])
     print(warning)
-    return equal
+    return equal, similar, alternative
 
 
 def compare_capacitors(components: List[data_types.Component]):

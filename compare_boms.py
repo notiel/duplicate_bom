@@ -47,10 +47,12 @@ def print_diff_data(first: List[ParamData], second: List[ParamData], type_str: s
     :return:
     """
     plus, minus = get_diff(second, first)
-    print("Added %s:" % type_str)
-    print(plus)
-    print("Delete %s:" % type_str)
-    print(minus)
+    if plus:
+        print("Added %s:" % type_str)
+        print(plus)
+    if minus:
+        print("Delete %s:" % type_str)
+        print(minus)
 
 
 def find_new_pns(old: List[data_types.Component], new: List[data_types.Component]):

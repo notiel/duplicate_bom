@@ -14,7 +14,7 @@ recommended = ['type', 'pn', 'designator', 'footprint', 'value']
 multiplier = {'m': 6, 'k': 3, 'r': 0}
 warning = ""
 
-Row = Tuple[worksheet.Worksheet, int, Dict[str, Optional[Any]]]
+Row = Tuple[Any, int, Dict[str, Optional[Any]]]
 
 
 def get_value(key: str, sheet: worksheet, row: int,  header_index: Dict[str, Optional[int]]) -> str:
@@ -56,6 +56,8 @@ def get_resistor_value(resistor_str: str) -> Optional[Union[float, int]]:
     :param resistor_str:
     :return:
     """
+    if not resistor_str:
+        return None
     # if resitor_str is already a digital value return itself
     if isinstance(resistor_str, float) or isinstance(resistor_str, int):
         return resistor_str
@@ -160,6 +162,7 @@ def get_resistor_data(row_addr: Row) -> data_types.Resistor:
     if not value:
         global warning
         warning += 'Wrong resistor value at %i row\n' % row_addr[1]
+        value = 0
     resistor = data_types.Resistor(value=value, tolerance=get_value('tolerance', *row_addr))
     return resistor
 
@@ -190,6 +193,58 @@ def get_capacitor_data(row_addr: Row) -> data_types.Capacitor:
     capacitor = data_types.Capacitor(value=value, unit=unit, voltage=voltage, tolerance=tolerance,
                                      dielectric=dielectric, absolute_pf_value=abs_value)
     return capacitor
+
+
+def validate_and_repair(component: data_types.Component):
+    """
+    validates component, prints warning, returns corrected component
+    :param component: component to validate
+    :return: corrected component
+    """
+    errors = ""
+    if component.component_type == data_types.ComponentType.OTHER:
+        errors += "No correct type\n"
+    if not component.designator:
+        errors += 'No designators\n'
+        component.designator = list()
+    if not component.description:
+        component.description = ""
+    if not component.pn_alt:
+        component.pn_alt = list()
+    if not component.manufacturer:
+        component.manufacturer = ""
+    if not component.footprint:
+        errors += "No footprint\n"
+        component.footprint = ""
+    if component.component_type == data_types.ComponentType.CAPACITOR:
+        if not component.details:
+            errors += "No capacitor data\n"
+            component.details = data_types.Capacitor(value=0, unit=data_types.CapUnits.PF, absolute_pf_value=0,
+                                                     voltage=0, tolerance=0, dielectric=list())
+        else:
+            if not component.details.value:
+                errors += "No capacitor value\n"
+                component.details.value = 0
+            if not component.details.absolute_pf_value:
+                component.details.absolute_pf_value = 0
+    if component.component_type == data_types.ComponentType.RESISTOR:
+        if not component.details:
+            errors += 'No resistor data\n'
+            component.details = data_types.Resistor(value=0, tolerance=1)
+        elif not component.details.value:
+            errors += "No resistor value\n"
+            component.details.value = 0
+    if component.component_type == data_types.ComponentType.INDUCTOR:
+        if not component.details:
+            errors += 'No inductor data\n'
+            component.details = data_types.Resistor(value=0, tolerance=1)
+        elif not component.details.value:
+            errors += "No inductor value\n"
+            component.details.value = 0
+    if errors:
+        global warning
+        warning += 'Component in row %i file %s  is incorrect: ' % (component.row, component.filename)
+        warning += errors
 
 
 def get_main_comp_data(row_addr: Row,) -> data_types.Component:
@@ -237,7 +292,9 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
         elif component.component_type == data_types.ComponentType.INDUCTOR:
             inductor = data_types.Inductor(value=get_value('value', *row_addr))
             component.details = inductor
+        validate_and_repair(component)
         result.append(component)
+    print(warning)
     return result
 
 
