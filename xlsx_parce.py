@@ -161,7 +161,7 @@ def get_resistor_data(row_addr: Row) -> data_types.Resistor:
     value = get_resistor_value(get_value('value', *row_addr))
     if not value:
         global warning
-        warning += 'Wrong resistor value at %i row\n' % row_addr[1]
+        # warning += 'Wrong resistor value at %i row\n' % row_addr[1]
         value = 0
     resistor = data_types.Resistor(value=value, tolerance=get_value('tolerance', *row_addr))
     return resistor
@@ -176,7 +176,7 @@ def get_capacitor_data(row_addr: Row) -> data_types.Capacitor:
     value, unit, dielectric, abs_value = get_capacitor_value_and_unit(get_value('value', *row_addr))
     if not value:
         global warning
-        warning += 'Wrong capacitor value at %i row\n' % row_addr[1]
+        # warning += 'Wrong capacitor value at %i row\n' % row_addr[1]
     dielectric_bom = get_value('dielectric', *row_addr)
     if dielectric_bom:
         if not dielectric_bom.lower() in data_types.dielectrics \
@@ -247,12 +247,19 @@ def validate_and_repair(component: data_types.Component):
         warning += errors
 
 
-def get_main_comp_data(row_addr: Row,) -> data_types.Component:
+def get_main_comp_data(row_addr: Row,) -> Optional[data_types.Component]:
     """
     gets main component data from xlsx
     :param row_addr:
     :return:
     """
+    for i in range(1, 20):
+        cell = row_addr[0].cell(row=row_addr[1], column=i)
+        try:
+            if "not used" in str(cell.value).lower():
+                return None
+        except (AttributeError, ValueError):
+            continue
     comp_type = get_component_type(get_value('type', *row_addr))
     footprint = get_footprint_data(get_value('footprint', *row_addr), comp_type)
     pn_alternative = [get_value('pn alternative 1', *row_addr),
@@ -260,7 +267,8 @@ def get_main_comp_data(row_addr: Row,) -> data_types.Component:
     pn_alternative = [x for x in pn_alternative if x]
     designator_raw = get_value('designator', *row_addr)
     designator = designator_raw.split(', ') if designator_raw else ""
-
+    if not designator and not footprint:
+        return None
     component = data_types.Component(row=row_addr[1], component_type=comp_type, footprint=footprint,
                                      pn=get_value('pn', *row_addr),
                                      manufacturer=get_value('manufacturer', *row_addr),
@@ -282,9 +290,13 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
     sheet = wb.active
     result: List[data_types.Component] = list()
     header_index = get_headers(sheet)
-    for row in range(1, sheet.max_row):
+    for row in range(2, sheet.max_row):
         row_addr: Row = (sheet, row, header_index)
         component = get_main_comp_data(row_addr)
+        if not component:
+            global warning
+            warning += "Row %i filename %s not used, skipped\n" % (row, filename)
+            continue
         component.filename = os.path.basename(filename)
         if component.component_type == data_types.ComponentType.RESISTOR:
             resistor = get_resistor_data(row_addr)
