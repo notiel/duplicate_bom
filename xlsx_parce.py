@@ -258,10 +258,13 @@ def get_main_comp_data(row_addr: Row,) -> data_types.Component:
     pn_alternative = [get_value('pn alternative 1', *row_addr),
                       get_value('pn alternative 2', *row_addr)]
     pn_alternative = [x for x in pn_alternative if x]
+    designator_raw = get_value('designator', *row_addr)
+    designator = designator_raw.split(', ') if designator_raw else ""
+
     component = data_types.Component(row=row_addr[1], component_type=comp_type, footprint=footprint,
                                      pn=get_value('pn', *row_addr),
                                      manufacturer=get_value('manufacturer', *row_addr),
-                                     designator=get_value('designator', *row_addr).split(', '),
+                                     designator=designator,
                                      description=get_value('description', *row_addr),
                                      pn_alt=pn_alternative)
     if not component.pn:
