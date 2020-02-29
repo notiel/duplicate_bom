@@ -286,6 +286,8 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
     :param filename: name of BOM
     :return: component list
     """
+    global warning
+    warning = ""
     wb = load_workbook(filename=filename)
     sheet = wb.active
     result: List[data_types.Component] = list()
@@ -294,7 +296,6 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
         row_addr: Row = (sheet, row, header_index)
         component = get_main_comp_data(row_addr)
         if not component:
-            global warning
             warning += "Row %i filename %s not used, skipped\n" % (row, filename)
             continue
         component.filename = os.path.basename(filename)
@@ -309,7 +310,8 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
             component.details = inductor
         validate_and_repair(component)
         result.append(component)
-    print(warning)
+    if warning:
+        print('WARNINGS FOR %s:\n' % filename.upper(), warning)
     return result
 
 

@@ -66,7 +66,7 @@ if __name__ == '__main__':
     if len(sys.argv) < 3:
         print("Parameters are missing, need type parameters and 1 or 2 filenames")
     if sys.argv[1].lower() == '--compare':
-        compare_boms_new_pns()
+        compare_boms_new_pns(detailed=True)
     elif sys.argv[1].lower() == '--duplicates':
         find_similar()
     else:

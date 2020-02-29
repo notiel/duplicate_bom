@@ -48,10 +48,10 @@ def print_diff_data(first: List[ParamData], second: List[ParamData], type_str: s
     """
     plus, minus = get_diff(second, first)
     if plus:
-        print("Added %s:" % type_str)
+        print("Added %s in second file:" % type_str)
         print(plus)
     if minus:
-        print("Delete %s:" % type_str)
+        print("Deleted %s in second file:" % type_str)
         print(minus)
 
 
@@ -76,7 +76,7 @@ def join_the_same(components: List[data_types.Component]):
     :param components: 
     :return: 
     """
-    similar = duplicates.compare_pns(components, precise=True)
+    similar, _, _ = duplicates.compare_pns(components, precise=True)
     similar_sorted = sorted(similar, key=lambda x: x[3], reverse=True)
     for pair in similar_sorted:
         first_index = pair[2]
@@ -138,15 +138,14 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
             if component.manufacturer != paired.manufacturer:
                 warning += "Manufacturer: was %s and now %s\n" % (component.manufacturer, paired.manufacturer)
 
-            # component.designator.sort(key=lambda x: int(x[1:]))
-            # paired.designator.sort(key=lambda x: int(x[1:]))
             plus, minus = get_diff(component.designator, paired.designator)
             if plus:
-                warning += "Following designators added: %s" % ", ".join(plus)
+                warning += "Following designators added: %s\n" % ", ".join(plus)
             if minus:
-                warning += "Following designators removed: %s" % ", ".join(minus)
+                warning += "Following designators removed: %s\n" % ", ".join(minus)
             if component.description.lower() != paired.description.lower():
                 warning += "Description: was %s and now %s\n" % (component.description, paired.description)
             if warning:
-                print("For component with pn %s, old row %i, new row %i changes are the following: \n" %
-                      (component.pn, component.row, paired.row) + warning)
+                pn = component.pn if component.pn else data_types.types[component.component_type.value]
+                print("For component with pn %s, former row %i, new row %i changes are the following: \n" %
+                      (pn, component.row, paired.row) + warning)
