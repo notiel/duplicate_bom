@@ -64,6 +64,7 @@ def find_new_pns(old: List[data_types.Component], new: List[data_types.Component
     """
     old_pn, old_cap, old_res, old_ind = get_comp_list_precise(old)
     new_pn, new_cap, new_res, new_ind = get_comp_list_precise(new)
+    print("COMPONENT DIFFERENCE:\n")
     print_diff_data(old_pn, new_pn, "partnumbers")
     print_diff_data(old_cap, new_cap, "capacitors")
     print_diff_data(old_res, new_res, "resistors")
@@ -127,6 +128,7 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
     """
     join_the_same(old)
     join_the_same(new)
+    print("DETAILED COMPARING THE SAME POSITIONS:\n")
     old_sorted = sorted(old, key=lambda x: x.row)
     for component in old_sorted:
         paired = find_components_in_list(component, new)
@@ -147,5 +149,5 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
                 warning += "Description: was %s and now %s\n" % (component.description, paired.description)
             if warning:
                 pn = component.pn if component.pn else data_types.types[component.component_type.value]
-                print("For component with pn %s, former row %i, new row %i changes are the following: \n" %
+                print("For component «%s», former row %i, new row %i changes are the following: \n" %
                       (pn, component.row, paired.row) + warning)

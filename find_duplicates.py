@@ -1,5 +1,6 @@
 # main script for comparing BOM's and finding duplicates
-# run with parameters «--compare filename1 filename2» to compare two BOMs
+# run with parameters «--compare filename1 filename2» to compare two BOMs by pns
+#                     «--detailed filename1 filename2 to get detailed compare
 #                     «--duplicate path» to find duplicates in path
 
 import duplicates
@@ -56,16 +57,17 @@ def compare_boms_new_pns(detailed=False):
         return
     old = xlsx_parce.get_components_from_xlxs(sys.argv[2])
     new = xlsx_parce.get_components_from_xlxs(sys.argv[3])
+    compare_boms.find_new_pns(old, new)
     if detailed:
         compare_boms.detail_compare(old, new)
-    else:
-        compare_boms.find_new_pns(old, new)
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print("Parameters are missing, need type parameters and 1 or 2 filenames")
     if sys.argv[1].lower() == '--compare':
+        compare_boms_new_pns(detailed=True)
+    elif sys.argv[1].lower() == '--detailed':
         compare_boms_new_pns(detailed=True)
     elif sys.argv[1].lower() == '--duplicates':
         find_similar()
