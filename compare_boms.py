@@ -9,20 +9,22 @@ ParamData = Tuple[Union[float, str], str]
 
 def get_comp_list_precise(components: List[data_types.Component]) -> Tuple[List[ParamData], List[ParamData],
                                                                            List[ParamData], List[ParamData]]:
-
     """
     gets lists of partnumbers, capacitors, inductors, resistors with their footprints
     :param components: list of components
     :return: list of pn+fp, cap+fp, res+fp, ind+fp
     """
-    pns = [(component.pn, component.footprint) for component in components
-           if component.component_type not in data_types.parametrized]
-    capacitors = [(component.details.value, component.footprint) for component in components
-                  if component.component_type == data_types.ComponentType.CAPACITOR]
-    resistors = [(component.details.value, component.footprint) for component in components
-                 if component.component_type == data_types.ComponentType.RESISTOR]
-    inductors = [(component.details.value, component.footprint) for component in components
-                 if component.component_type == data_types.ComponentType.INDUCTOR]
+    pns: List[Tuple[str, str]] = [(component.pn, component.footprint) for component in components
+                                  if component.component_type not in data_types.parametrized]
+    capacitors: List[Tuple[int, str]] = [(component.details.absolute_pf_value, component.footprint)
+                                         for component in components
+                                         if component.component_type == data_types.ComponentType.CAPACITOR]
+    resistors: List[Tuple[Union[float, str], str]] = [(component.details.value, component.footprint)
+                                                      for component in components
+                                                      if component.component_type == data_types.ComponentType.RESISTOR]
+    inductors: List[Tuple[Union[float, str], str]] = [(component.details.value, component.footprint)
+                                                      for component in components
+                                                      if component.component_type == data_types.ComponentType.INDUCTOR]
     return pns, capacitors, resistors, inductors
 
 
@@ -78,10 +80,10 @@ def join_the_same(components: List[data_types.Component]):
     :return: 
     """
     similar, _, _ = duplicates.compare_pns(components, precise=True)
-    similar_sorted = sorted(similar, key=lambda x: x[3], reverse=True)
+    similar_sorted: List[Tuple[str, int, int, str, int, int]] = sorted(similar, key=lambda x: x[3], reverse=True)
     for pair in similar_sorted:
-        first_index = pair[2]
-        second_index = pair[5]
+        first_index: int = pair[2]
+        second_index: int = pair[5]
         components[first_index].designator.extend(components[second_index].designator)
         components[first_index].description += components[second_index].description
     for pair in similar_sorted:

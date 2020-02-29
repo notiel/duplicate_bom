@@ -1,4 +1,4 @@
-# xlsx BOM file parcing for find_duplicates
+# service module, xlsx BOM file parcing for find_duplicates
 
 from openpyxl import Workbook
 from openpyxl import load_workbook, worksheet
@@ -158,10 +158,8 @@ def get_resistor_data(row_addr: Row) -> data_types.Resistor:
     :param row_addr:
     :return: resistor instance
     """
-    value = get_resistor_value(get_value('value', *row_addr))
+    value:  Optional[Union[float, int]] = get_resistor_value(get_value('value', *row_addr))
     if not value:
-        global warning
-        # warning += 'Wrong resistor value at %i row\n' % row_addr[1]
         value = 0
     resistor = data_types.Resistor(value=value, tolerance=get_value('tolerance', *row_addr))
     return resistor
@@ -175,21 +173,21 @@ def get_capacitor_data(row_addr: Row) -> data_types.Capacitor:
     """
     value, unit, dielectric, abs_value = get_capacitor_value_and_unit(get_value('value', *row_addr))
     if not value:
-        global warning
-        # warning += 'Wrong capacitor value at %i row\n' % row_addr[1]
+        value = 0
     dielectric_bom = get_value('dielectric', *row_addr)
     if dielectric_bom:
         if not dielectric_bom.lower() in data_types.dielectrics \
                 or data_types.Dielectric(data_types.dielectrics.index(dielectric_bom.lower())) not in dielectric:
+            global warning
             warning += 'Dielectric from BOM does not match capacitor value in %i row\n' % row_addr[1]
     try:
         voltage = get_value('voltage', *row_addr).lower().replace("v", "")
     except (ValueError, AttributeError):
-        voltage = None
+        voltage = 0
     try:
         tolerance = float(get_value('tolerance', *row_addr))
     except (ValueError, AttributeError, TypeError):
-        tolerance = None
+        tolerance = 0
     capacitor = data_types.Capacitor(value=value, unit=unit, voltage=voltage, tolerance=tolerance,
                                      dielectric=dielectric, absolute_pf_value=abs_value)
     return capacitor
@@ -201,9 +199,9 @@ def validate_and_repair(component: data_types.Component):
     :param component: component to validate
     :return: corrected component
     """
-    errors = ""
+    errors: str = ""
     if component.component_type == data_types.ComponentType.OTHER:
-        errors += "No correct type\n"
+        errors += "Incorrect type\n"
     if not component.designator:
         errors += 'No designators\n'
         component.designator = list()
@@ -227,19 +225,15 @@ def validate_and_repair(component: data_types.Component):
                 component.details.value = 0
             if not component.details.absolute_pf_value:
                 component.details.absolute_pf_value = 0
-    if component.component_type == data_types.ComponentType.RESISTOR:
+    if component.component_type in[data_types.ComponentType.RESISTOR, data_types.ComponentType.INDUCTOR]:
+        type_str: str = data_types.types[component.component_type.value]
         if not component.details:
-            errors += 'No resistor data\n'
+            errors += 'No %s data\n' % type_str
             component.details = data_types.Resistor(value=0, tolerance=1)
         elif not component.details.value:
-            errors += "No resistor value\n"
-            component.details.value = 0
-    if component.component_type == data_types.ComponentType.INDUCTOR:
-        if not component.details:
-            errors += 'No inductor data\n'
-            component.details = data_types.Resistor(value=0, tolerance=1)
-        elif not component.details.value:
-            errors += "No inductor value\n"
+            # we may not have value for inductors
+            if component.component_type == data_types.ComponentType.RESISTOR or not component.pn:
+                errors += "No %s value\n" % type_str
             component.details.value = 0
     if errors:
         global warning
@@ -247,36 +241,42 @@ def validate_and_repair(component: data_types.Component):
         warning += errors
 
 
-def get_main_comp_data(row_addr: Row,) -> Optional[data_types.Component]:
+def check_for_not_used(row_addr: Row) -> bool:
+    """
+    checks if component row contains "not used" text
+    :param row_addr: information about sheei and row
+    :return: true or false
+    """
+    for i in range(1, row_addr[0].max_column):
+        cell = row_addr[0].cell(row=row_addr[1], column=i)
+        if cell.value and "not used" in str(cell.value).lower():
+            return True
+    return False
+
+
+def get_main_comp_data(row_addr: Row) -> Optional[data_types.Component]:
     """
     gets main component data from xlsx
     :param row_addr:
     :return:
     """
-    for i in range(1, 20):
-        cell = row_addr[0].cell(row=row_addr[1], column=i)
-        try:
-            if "not used" in str(cell.value).lower():
-                return None
-        except (AttributeError, ValueError):
-            continue
-    comp_type = get_component_type(get_value('type', *row_addr))
-    footprint = get_footprint_data(get_value('footprint', *row_addr), comp_type)
-    pn_alternative = [get_value('pn alternative 1', *row_addr),
-                      get_value('pn alternative 2', *row_addr)]
+    if check_for_not_used(row_addr):
+        return None
+    comp_type: data_types.ComponentType = get_component_type(get_value('type', *row_addr))
+    footprint: str = get_footprint_data(get_value('footprint', *row_addr), comp_type)
+    pn_alternative: List[str] = [get_value('pn alternative 1', *row_addr), get_value('pn alternative 2', *row_addr)]
+    # remove empty alternative pns
     pn_alternative = [x for x in pn_alternative if x]
-    designator_raw = get_value('designator', *row_addr)
-    designator = designator_raw.split(', ') if designator_raw else ""
-    if not designator and not footprint:
+    designator_raw: str = get_value('designator', *row_addr)
+    designator: List[str] = designator_raw.split(', ') if designator_raw else list()
+    pn: str = get_value('pn', *row_addr) if get_value('pn', *row_addr) else ""
+    if not designator and not footprint and not pn:
         return None
     component = data_types.Component(row=row_addr[1], component_type=comp_type, footprint=footprint,
-                                     pn=get_value('pn', *row_addr),
-                                     manufacturer=get_value('manufacturer', *row_addr),
+                                     pn=pn, manufacturer=get_value('manufacturer', *row_addr),
                                      designator=designator,
                                      description=get_value('description', *row_addr),
                                      pn_alt=pn_alternative)
-    if not component.pn:
-        component.pn = ""
     return component
 
 
@@ -291,30 +291,22 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
     wb = load_workbook(filename=filename)
     sheet = wb.active
     result: List[data_types.Component] = list()
-    header_index = get_headers(sheet)
+    header_index:  Dict[str, Optional[int]] = get_headers(sheet)
     for row in range(2, sheet.max_row):
         row_addr: Row = (sheet, row, header_index)
-        component = get_main_comp_data(row_addr)
+        component: data_types.Component = get_main_comp_data(row_addr)
         if not component:
             warning += "Row %i filename %s not used, skipped\n" % (row, filename)
             continue
         component.filename = os.path.basename(filename)
         if component.component_type == data_types.ComponentType.RESISTOR:
-            resistor = get_resistor_data(row_addr)
-            component.details = resistor
+            component.details = get_resistor_data(row_addr)
         elif component.component_type == data_types.ComponentType.CAPACITOR:
-            capacitor = get_capacitor_data(row_addr)
-            component.details = capacitor
+            component.details = get_capacitor_data(row_addr)
         elif component.component_type == data_types.ComponentType.INDUCTOR:
-            inductor = data_types.Inductor(value=get_value('value', *row_addr))
-            component.details = inductor
+            component.details = data_types.Inductor(value=get_value('value', *row_addr))
         validate_and_repair(component)
         result.append(component)
     if warning:
         print('WARNINGS FOR %s:\n' % filename.upper(), warning)
     return result
-
-
-if __name__ == '__main__':
-    get_components_from_xlxs('BOM_StPlus_SOM_V1.5.xlsx')
-    print(warning)

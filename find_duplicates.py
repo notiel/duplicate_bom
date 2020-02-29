@@ -13,6 +13,10 @@ from typing import List
 
 
 def find_similar():
+    """
+    main function for finding similar positions
+    :return:
+    """
     path = sys.argv[2] if len(sys.argv) >= 3 else '.'
     if os.path.exists(path):
         if os.path.isdir(path):
@@ -28,13 +32,13 @@ def find_similar():
             components_list: List[data_types.Component] = xlsx_parce.get_components_from_xlxs(path)
         equal, similar, alternative = duplicates.compare_pns(components_list, root_len=8, precise=False)
         if equal:
-            print("These rows have equal pns")
+            print("These rows have equal pns:\n")
             print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in equal])
         if similar:
-            print("These rows have similar pns")
+            print("These rows have similar pns:\n")
             print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in similar])
         if alternative:
-            print('These rows have similar alternative pn')
+            print('These rows have similar alternative pn:\n')
             print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in alternative])
         duplicates.compare_capacitors(components_list)
         duplicates.compare_resistors(components_list)
@@ -45,7 +49,7 @@ def find_similar():
 
 def compare_boms_new_pns(detailed=False):
     """
-
+    main function for bom comparing. Use detailed=True to get detailed comparing and False to compare PNs only
     :return:
     """
     if len(sys.argv) != 4:

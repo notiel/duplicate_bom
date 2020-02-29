@@ -1,4 +1,4 @@
-# module for finding similar components for find_duplicates script
+# srevice module for finding similar components for find_duplicates script
 
 import data_types
 from typing import List, Tuple
