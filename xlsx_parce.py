@@ -262,6 +262,9 @@ def get_main_comp_data(row_addr: Row) -> Optional[data_types.Component]:
     """
     if check_for_not_used(row_addr):
         return None
+    pn: str = get_value('pn', *row_addr) if get_value('pn', *row_addr) else ""
+    if pn == "NU":
+        return None
     comp_type: data_types.ComponentType = get_component_type(get_value('type', *row_addr))
     footprint: str = get_footprint_data(get_value('footprint', *row_addr), comp_type)
     pn_alternative: List[str] = [get_value('pn alternative 1', *row_addr), get_value('pn alternative 2', *row_addr)]
