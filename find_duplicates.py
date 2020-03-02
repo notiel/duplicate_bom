@@ -1,5 +1,6 @@
 # main script for comparing BOM's and finding duplicates
 # run with parameters «--compare filename1 filename2» to compare two BOMs by pns
+#                     «--compare filename1 filename2» to compare two BOMs by pns and quantity
 #                     «--detailed filename1 filename2 to get detailed compare
 #                     «--duplicate path» to find duplicates in path
 
@@ -47,7 +48,7 @@ def find_similar():
         print("Incorrect filename")
 
 
-def compare_boms_new_pns(detailed=False):
+def compare_boms_new_pns(quantity=False, detailed=False):
     """
     main function for bom comparing. Use detailed=True to get detailed comparing and False to compare PNs only
     :return:
@@ -63,16 +64,20 @@ def compare_boms_new_pns(detailed=False):
     new = xlsx_parce.get_components_from_xlxs(sys.argv[3])
     compare_boms.find_new_pns(old, new)
     if detailed:
-        compare_boms.detail_compare(old, new)
+        compare_boms.detail_compare(old, new, False)
+    if quantity:
+        compare_boms.detail_compare(old, new, True)
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print("Parameters are missing, need type parameters and 1 or 2 filenames")
     if sys.argv[1].lower() == '--compare':
-        compare_boms_new_pns(detailed=True)
+        compare_boms_new_pns()
     elif sys.argv[1].lower() == '--detailed':
         compare_boms_new_pns(detailed=True)
+    elif sys.argv[1].lower() == '--quantity':
+        compare_boms_new_pns(quantity=True)
     elif sys.argv[1].lower() == '--duplicates':
         find_similar()
     else:

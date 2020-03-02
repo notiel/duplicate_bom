@@ -121,11 +121,12 @@ def find_components_in_list(key_component: data_types.Component, components: Lis
         return None
 
 
-def detail_compare(old: List[data_types.Component], new: List[data_types.Component]):
+def detail_compare(old: List[data_types.Component], new: List[data_types.Component], only_quantity: False):
     """
     compare two list
-    :param old:
-    :param new:
+    :param only_quantity: if True warning shows only quantity difference
+    :param old: list with first componentns
+    :param new: list with second components
     :return:
     """
     join_the_same(old)
@@ -136,19 +137,23 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
         paired = find_components_in_list(component, new)
         if paired:
             warning = ""
-            if component.component_type != paired.component_type:
-                warning += "Type: was %s and now %s\n" % \
-                           (data_types.types[component.component_type], data_types.types[paired.component_type])
-            if component.manufacturer != paired.manufacturer:
-                warning += "Manufacturer: was %s and now %s\n" % (component.manufacturer, paired.manufacturer)
+            if only_quantity:
+                if len(component.designator) != len(paired.designator):
+                    warning += "Quantity changed: was %i, now %i" % (len(component.designator), len(paired.designator))
+            else:
+                if component.component_type != paired.component_type:
+                    warning += "Type: was %s and now %s\n" % \
+                               (data_types.types[component.component_type], data_types.types[paired.component_type])
+                if component.manufacturer != paired.manufacturer:
+                    warning += "Manufacturer: was %s and now %s\n" % (component.manufacturer, paired.manufacturer)
 
-            plus, minus = get_diff(component.designator, paired.designator)
-            if plus:
-                warning += "Following designators added: %s\n" % ", ".join(plus)
-            if minus:
-                warning += "Following designators removed: %s\n" % ", ".join(minus)
-            if component.description.lower() != paired.description.lower():
-                warning += "Description: was %s and now %s\n" % (component.description, paired.description)
+                plus, minus = get_diff(component.designator, paired.designator)
+                if plus:
+                    warning += "Following designators added: %s\n" % ", ".join(plus)
+                if minus:
+                    warning += "Following designators removed: %s\n" % ", ".join(minus)
+                if component.description.lower() != paired.description.lower():
+                    warning += "Description: was %s and now %s\n" % (component.description, paired.description)
             if warning:
                 pn = component.pn if component.pn else data_types.types[component.component_type.value]
                 print("For component «%s», former row %i, new row %i changes are the following: \n" %
