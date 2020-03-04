@@ -119,8 +119,8 @@ def find_components_in_list(key_component: data_types.Component, components: Lis
                     if component.component_type == key_component.component_type:
                         return component
         return None
-    
-    
+
+
 def get_pn(component: data_types.Component) -> str:
     """
     gets component description (pn or value)
@@ -131,10 +131,10 @@ def get_pn(component: data_types.Component) -> str:
         return 'PN: %s, footprint: %s' % (component.pn, component.footprint)
     if component.component_type in data_types.parametrized:
         return '%s with value %s%s, footprint: %s' % (component.component_type.name, str(component.details.value),
-                                                         data_types.units_cap[component.details.unit]
-                                                         if component.component_type == data_types.ComponentType.CAPACITOR
-                                                         else data_types.units[component.component_type.name.lower()],
-                                                         component.footprint)
+                                                      data_types.units_cap[component.details.unit]
+                                                      if component.component_type == data_types.ComponentType.CAPACITOR
+                                                      else data_types.units[component.component_type.name.lower()],
+                                                      component.footprint)
 
 
 def detail_compare(old: List[data_types.Component], new: List[data_types.Component], only_quantity: False):
@@ -171,6 +171,5 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
                 if component.description.lower() != paired.description.lower():
                     warning += "Description: was %s and now %s\n" % (component.description, paired.description)
             if warning:
-                pn = component.pn if component.pn else data_types.types[component.component_type.value]
                 print("For %s, former row %i, new row %i changes are the following: \n" %
                       (get_pn(component), component.row, paired.row) + warning)

@@ -70,7 +70,7 @@ def compare_boms_new_pns(quantity=False, detailed=False):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 2:
         print("Parameters are missing, need type parameters and 1 or 2 filenames")
     if sys.argv[1].lower() == '--compare':
         compare_boms_new_pns()

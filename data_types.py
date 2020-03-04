@@ -1,15 +1,16 @@
-# module with data tyoes for comparing boms
+# module with data types for comparing boms
 from enum import Enum
 from typing import List, Union, Optional
 
 from dataclasses import dataclass, field
 
-dielectrics = ['np0', 'x5r', 'x7r']
+dielectrics = ['np0', 'x5r', 'x7r', 'x5r or x7r']
 units_cap = ['u', 'n', 'pf']
 types = ['resistor', 'capacitor', 'crystal', 'inductor', 'diode', 'chip', 'module', 'emifil', 'connector', 'button',
-         'switch', 'transistor, supercapacitor']
+         'switch', 'transistor', 'supercapacitor', 'ic', 'esd']
+the_same = {'ic': 'chip', 'chip': 'ic', 'emi_filter': 'inductor',
+            'inductor': 'emi_filter', 'diode': 'esd', 'esd': 'diode'}
 units = {'resistor': 'R', 'inductor': ''}
-
 
 
 class ComponentType(Enum):
@@ -26,7 +27,9 @@ class ComponentType(Enum):
     SWITCH = 10
     TRANSISTOR = 11
     SUPERCAPACITOR = 12
-    OTHER = 13
+    IC = 13
+    ESD = 14
+    OTHER = 15
 
 
 # list of component types that could be compared by their parameters, not pn only

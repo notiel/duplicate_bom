@@ -26,10 +26,16 @@ def compare_pns(components: List[data_types.Component], root_len: int = 8, preci
     for (index, component) in enumerate(sorted_components[:-1]):
         next_comp = sorted_components[index + 1]
         if component.pn.lower() == next_comp.pn.lower():
-            similar.append((component.filename, component.row, index, next_comp.filename, next_comp.row, index+1))
-            if component.component_type != next_comp.component_type or component.footprint != next_comp.footprint:
+            # similar.append((component.filename, component.row, index, next_comp.filename, next_comp.row, index+1))
+            if component.footprint != next_comp.footprint:
                 warning += "Components in file %s row %i and  file %s row %i have same partnumbers but different " \
-                           "type or footprint\n" % (component.filename, component.row, next_comp.filename, next_comp.row)
+                           "footprint\n" % (component.filename, component.row, next_comp.filename, next_comp.row)
+            if component.component_type != next_comp.component_type:
+                if component.component_type.name.lower() not in data_types.the_same.keys() \
+                        or data_types.the_same[component.component_type.name.lower()] \
+                        != next_comp.component_type.name.lower():
+                    warning += "Components in file %s row %i and  file %s row %i have same partnumbers but different " \
+                               "type\n" % (component.filename, component.row, next_comp.filename, next_comp.row)
                 equal.append((component.filename, component.row, index, next_comp.filename, next_comp.row, index+1))
         if not precise:
             if component.component_type not in data_types.parametrized and len(component.footprint) >= 4:

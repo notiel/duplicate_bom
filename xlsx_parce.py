@@ -58,7 +58,7 @@ def get_resistor_value(resistor_str: str) -> Optional[Union[float, int]]:
     """
     if not resistor_str:
         return None
-    # if resitor_str is already a digital value return itself
+    # if resistor_str is already a digital value return itself
     if isinstance(resistor_str, float) or isinstance(resistor_str, int):
         return resistor_str
     resistor_str = resistor_str.replace(',', '.').lower()
@@ -160,7 +160,7 @@ def get_resistor_data(row_addr: Row) -> data_types.Resistor:
     """
     value:  Optional[Union[float, int]] = get_resistor_value(get_value('value', *row_addr))
     if not value:
-        value = 0
+        value = -1
     resistor = data_types.Resistor(value=value, tolerance=get_value('tolerance', *row_addr))
     return resistor
 
@@ -176,10 +176,11 @@ def get_capacitor_data(row_addr: Row) -> data_types.Capacitor:
         value = 0
     dielectric_bom = get_value('dielectric', *row_addr)
     if dielectric_bom:
-        if not dielectric_bom.lower() in data_types.dielectrics \
-                or data_types.Dielectric(data_types.dielectrics.index(dielectric_bom.lower())) not in dielectric:
-            global warning
-            warning += 'Dielectric from BOM does not match capacitor value in %i row\n' % row_addr[1]
+        for new_dielectric in dielectric_bom.replace("or ", "").lower().split():
+            if new_dielectric not in data_types.dielectrics or\
+                    data_types.Dielectric(data_types.dielectrics.index(new_dielectric)) not in dielectric:
+                global warning
+                warning += 'Dielectric from BOM does not match capacitor value in %i row\n' % row_addr[1]
     try:
         voltage = get_value('voltage', *row_addr).lower().replace("v", "")
     except (ValueError, AttributeError):
@@ -201,7 +202,7 @@ def validate_and_repair(component: data_types.Component):
     """
     errors: str = ""
     if component.component_type == data_types.ComponentType.OTHER:
-        errors += "Incorrect type\n"
+        errors += "Unknown type\n"
     if not component.designator:
         errors += 'No designators\n'
         component.designator = list()
@@ -225,16 +226,16 @@ def validate_and_repair(component: data_types.Component):
                 component.details.value = 0
             if not component.details.absolute_pf_value:
                 component.details.absolute_pf_value = 0
-    if component.component_type in[data_types.ComponentType.RESISTOR, data_types.ComponentType.INDUCTOR]:
+    if component.component_type in [data_types.ComponentType.RESISTOR, data_types.ComponentType.INDUCTOR]:
         type_str: str = data_types.types[component.component_type.value]
         if not component.details:
             errors += 'No %s data\n' % type_str
-            component.details = data_types.Resistor(value=0, tolerance=1)
+            component.details = data_types.Resistor(value=-1, tolerance=1)
         elif not component.details.value:
             # we may not have value for inductors
             if component.component_type == data_types.ComponentType.RESISTOR or not component.pn:
                 errors += "No %s value\n" % type_str
-            component.details.value = 0
+            component.details.value = -1
     if errors:
         global warning
         warning += 'Component in row %i file %s  is incorrect: ' % (component.row, component.filename)
@@ -265,6 +266,8 @@ def get_main_comp_data(row_addr: Row) -> Optional[data_types.Component]:
     pn: str = get_value('pn', *row_addr) if get_value('pn', *row_addr) else ""
     if pn == "NU":
         return None
+    if pn == '-':
+        pn = ""
     comp_type: data_types.ComponentType = get_component_type(get_value('type', *row_addr))
     footprint: str = get_footprint_data(get_value('footprint', *row_addr), comp_type)
     pn_alternative: List[str] = [get_value('pn alternative 1', *row_addr), get_value('pn alternative 2', *row_addr)]
@@ -272,7 +275,6 @@ def get_main_comp_data(row_addr: Row) -> Optional[data_types.Component]:
     pn_alternative = [x for x in pn_alternative if x]
     designator_raw: str = get_value('designator', *row_addr)
     designator: List[str] = designator_raw.split(', ') if designator_raw else list()
-    pn: str = get_value('pn', *row_addr) if get_value('pn', *row_addr) else ""
     if not designator and not footprint and not pn:
         return None
     component = data_types.Component(row=row_addr[1], component_type=comp_type, footprint=footprint,
@@ -296,6 +298,8 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
     result: List[data_types.Component] = list()
     header_index:  Dict[str, Optional[int]] = get_headers(sheet)
     for row in range(2, sheet.max_row):
+        if row == 73:
+            print('here')
         row_addr: Row = (sheet, row, header_index)
         component: data_types.Component = get_main_comp_data(row_addr)
         if not component:
