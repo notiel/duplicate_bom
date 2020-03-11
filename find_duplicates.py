@@ -62,7 +62,7 @@ def compare_boms_new_pns(quantity=False, detailed=False):
         return
     old = xlsx_parce.get_components_from_xlxs(sys.argv[2])
     new = xlsx_parce.get_components_from_xlxs(sys.argv[3])
-    compare_boms.find_new_pns(old, new)
+    compare_boms.find_new_pns(old, new, not quantity)
     if detailed:
         compare_boms.detail_compare(old, new, False)
     if quantity:

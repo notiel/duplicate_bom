@@ -16,10 +16,10 @@ def get_comp_list_precise(components: List[data_types.Component]) -> Tuple[List[
     """
     pns: List[Tuple[str, str]] = [(component.pn, component.footprint) for component in components
                                   if component.component_type not in data_types.parametrized]
-    capacitors: List[Tuple[int, str]] = [(component.details.absolute_pf_value, component.footprint)
+    capacitors: List[Tuple[str, str]] = [(str(component.details.absolute_pf_value) + 'pf', component.footprint)
                                          for component in components
                                          if component.component_type == data_types.ComponentType.CAPACITOR]
-    resistors: List[Tuple[Union[float, str], str]] = [(component.details.value, component.footprint)
+    resistors: List[Tuple[Union[float, str], str]] = [(str(component.details.value) + 'R', component.footprint)
                                                       for component in components
                                                       if component.component_type == data_types.ComponentType.RESISTOR
                                                       and component.details.value != -1]
@@ -53,9 +53,10 @@ def get_diff(first: List[Any], second: List[Any]):
     return f_set.difference(s_set), s_set.difference(f_set)
 
 
-def print_diff_data(first: List[ParamData], second: List[ParamData], type_str: str):
+def print_diff_data(first: List[ParamData], second: List[ParamData], type_str: str, deleted: bool):
     """
     prints added and deleted elements of two lists
+    :param deleted: print or not deleted positions
     :param first: list with first data
     :param second: list with second data
     :param type_str: description of data compared
@@ -65,14 +66,15 @@ def print_diff_data(first: List[ParamData], second: List[ParamData], type_str: s
     if plus:
         print("Added %s in second file:" % type_str)
         print(plus)
-    # if minus:
-    #     print("Deleted %s in second file:" % type_str)
-    #     print(minus)
+    if deleted and minus:
+        print("Deleted %s in second file:" % type_str)
+        print(minus)
 
 
-def find_new_pns(old: List[data_types.Component], new: List[data_types.Component]):
+def find_new_pns(old: List[data_types.Component], new: List[data_types.Component], deleted: bool):
     """
     compare two lists to find new positions
+    :param deleted: print or not deleted positions
     :param old: list of old components
     :param new: list of new components
     :return:
@@ -80,10 +82,10 @@ def find_new_pns(old: List[data_types.Component], new: List[data_types.Component
     old_pn, old_cap, old_res, old_ind = get_comp_list_precise(old)
     new_pn, new_cap, new_res, new_ind = get_comp_list_precise(new)
     print("COMPONENT DIFFERENCE:\n")
-    print_diff_data(old_pn, new_pn, "partnumbers")
-    print_diff_data(old_cap, new_cap, "capacitors")
-    print_diff_data(old_res, new_res, "resistors")
-    print_diff_data(old_ind, new_ind, "inductors")
+    print_diff_data(old_pn, new_pn, "partnumbers", deleted)
+    print_diff_data(old_cap, new_cap, "capacitors", deleted)
+    print_diff_data(old_res, new_res, "resistors", deleted)
+    print_diff_data(old_ind, new_ind, "inductors", deleted)
 
 
 def join_the_same(components: List[data_types.Component]):
@@ -111,7 +113,7 @@ def find_components_in_list(key_component: data_types.Component, components: Lis
     :param components: list of components
     :return: component or None
     """
-    if key_component.component_type not in data_types.parametrized:
+    if key_component.component_type not in data_types.parametrized or not key_component.details.value:
         for component in components:
             if component.pn.lower() == key_component.pn.lower():
                 if component.footprint.lower() == key_component.footprint.lower():
@@ -166,6 +168,8 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
         print("QUANTITY CHANGED")
     old_sorted = sorted(old, key=lambda x: x.row)
     for component in old_sorted:
+        if component.pn.startswith('DD1274AS'):
+            print("here")
         paired = find_components_in_list(component, new)
         if paired:
             warning = ""
@@ -192,5 +196,5 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
         if not paired:
             if check_component(component):
                 print("For %s, former row %i changes are the following:" %
-                     (get_pn(component), component.row))
+                      (get_pn(component), component.row))
                 print("Quantity changed: was %i, now 0" % len(component.designator))

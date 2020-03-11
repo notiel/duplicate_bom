@@ -45,13 +45,13 @@ def get_component_type(comp_type_str: str) -> data_types.ComponentType:
     return data_types.ComponentType.OTHER
 
 
-def get_component_type_by_footprint(footpint_str: str) -> data_types.ComponentType:
+def get_component_type_by_footprint(footprint_str: str) -> data_types.ComponentType:
     """
     gets component type analyzing string with footorint
     :param footprint_str: field type from xlsx
     :return: type of component
     """
-    comp_type_str = footpint_str.split(":")[0]
+    comp_type_str = footprint_str.split(":")[0]
     for comp_type in data_types.types:
         if comp_type.lower() in comp_type_str.lower():
             return data_types.ComponentType(data_types.types.index(comp_type))
@@ -322,9 +322,7 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
     sheet = wb.active
     result: List[data_types.Component] = list()
     header_index:  Dict[str, Optional[int]] = get_headers(sheet)
-    for row in range(2, sheet.max_row):
-        if row == 73:
-            print('here')
+    for row in range(2, sheet.max_row+1):
         row_addr: Row = (sheet, row, header_index)
         component: data_types.Component = get_main_comp_data(row_addr)
         if not component:
