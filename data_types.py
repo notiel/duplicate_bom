@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 dielectrics = ['np0', 'x5r', 'x7r', 'x5r or x7r']
 units_cap = ['u', 'n', 'pf']
 types = ['resistor', 'capacitor', 'crystal', 'inductor', 'diode', 'chip', 'module', 'emifil', 'connector', 'button',
-         'switch', 'transistor', 'supercapacitor', 'ic', 'esd']
+         'switch', 'transistor', 'supercapacitor', 'ic', 'esd', 'sensor', 'led']
 the_same = {'ic': 'chip', 'chip': 'ic', 'emi_filter': 'inductor',
             'inductor': 'emi_filter', 'diode': 'esd', 'esd': 'diode'}
 units = {'resistor': 'R', 'inductor': ''}
@@ -29,7 +29,9 @@ class ComponentType(Enum):
     SUPERCAPACITOR = 12
     IC = 13
     ESD = 14
-    OTHER = 15
+    SENSOR = 15
+    LED = 16
+    OTHER = 17
 
 
 # list of component types that could be compared by their parameters, not pn only

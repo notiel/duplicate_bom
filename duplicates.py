@@ -94,7 +94,7 @@ def compare_resistors(components: List[data_types.Component]):
     similar_resistors: List[Tuple[str, int, str, int]] = list()
     res_sorted: List[data_types.Component] = sorted([component for component in components
                                                      if component.component_type == data_types.ComponentType.RESISTOR
-                                                     and component.details.value],
+                                                     and component.details.value != -1],
                                                     key=lambda x: x.details.value)
     if len(res_sorted) < 2:
         return

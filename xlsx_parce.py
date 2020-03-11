@@ -9,7 +9,7 @@ import os
 import data_types
 
 headers = ['type', 'pn', 'manufacturer', 'pn alternative 1', 'pn alternative 2', 'designator', 'footprint',
-           'dielectric', 'value', 'voltage', 'tolerance', 'description']
+           'dielectric', 'value', 'voltage', 'tolerance', 'description', 'ref', 'reference']
 recommended = ['type', 'pn', 'designator', 'footprint', 'value']
 multiplier = {'m': 6, 'k': 3, 'r': 0}
 warning = ""
@@ -39,6 +39,19 @@ def get_component_type(comp_type_str: str) -> data_types.ComponentType:
     """
     if not comp_type_str:
         return data_types.ComponentType.OTHER
+    for comp_type in data_types.types:
+        if comp_type.lower() in comp_type_str.lower():
+            return data_types.ComponentType(data_types.types.index(comp_type))
+    return data_types.ComponentType.OTHER
+
+
+def get_component_type_by_footprint(footpint_str: str) -> data_types.ComponentType:
+    """
+    gets component type analyzing string with footorint
+    :param footprint_str: field type from xlsx
+    :return: type of component
+    """
+    comp_type_str = footpint_str.split(":")[0]
     for comp_type in data_types.types:
         if comp_type.lower() in comp_type_str.lower():
             return data_types.ComponentType(data_types.types.index(comp_type))
@@ -120,18 +133,20 @@ def get_footprint_data(footprint_str: str, comp_type: data_types.ComponentType) 
     """
     if not footprint_str:
         return ""
+    # remove type from footprint if used
+    footprint_str_new = footprint_str.split(':')[1] if ":" in footprint_str else footprint_str
     first_letter: Dict[data_types.ComponentType, str] = {data_types.ComponentType.CAPACITOR: 'c',
                                                          data_types.ComponentType.INDUCTOR: 'i',
                                                          data_types.ComponentType.RESISTOR: 'r'}
     # remove type letter for capacitors/inductors/resistors and turn first part before _
     for key in first_letter.keys():
         if comp_type == key:
-            if footprint_str.lower().startswith(first_letter[key]):
-                return footprint_str[1:].split('_')[0]
+            if footprint_str_new.lower().startswith(first_letter[key]):
+                return footprint_str_new[1:].split('_')[0]
     if comp_type is data_types.ComponentType.CRYSTAL:
-        if footprint_str.lower().startswith('cry'):
-            return footprint_str[4:]
-    return footprint_str
+        if footprint_str_new.lower().startswith('cry'):
+            return footprint_str_new[4:]
+    return footprint_str_new
 
 
 def get_headers(sheet: Workbook) -> Dict[str, Optional[int]]:
@@ -145,10 +160,15 @@ def get_headers(sheet: Workbook) -> Dict[str, Optional[int]]:
         col_header: str = sheet['%s1' % col].value
         if col_header and col_header.lower() in headers:
             header_index[col_header.lower()] = ascii_uppercase.index(col) + 1
+    if not header_index['designator']:
+        if header_index['ref']:
+            header_index['designator'] = header_index['ref']
+        elif header_index['reference']:
+            header_index['designator'] = header_index['reference']
     absent_headers: List[str] = [header for header in recommended if not header_index[header]]
     if absent_headers:
         global warning
-        warning = 'The following columns are recommended but absent: ' + ', '.join(absent_headers)
+        warning = 'The following columns are recommended but absent: ' + ', '.join(absent_headers) + '\n'
     return header_index
 
 
@@ -159,7 +179,7 @@ def get_resistor_data(row_addr: Row) -> data_types.Resistor:
     :return: resistor instance
     """
     value:  Optional[Union[float, int]] = get_resistor_value(get_value('value', *row_addr))
-    if not value:
+    if not value and value != 0:
         value = -1
     resistor = data_types.Resistor(value=value, tolerance=get_value('tolerance', *row_addr))
     return resistor
@@ -233,9 +253,10 @@ def validate_and_repair(component: data_types.Component):
             component.details = data_types.Resistor(value=-1, tolerance=1)
         elif not component.details.value:
             # we may not have value for inductors
-            if component.component_type == data_types.ComponentType.RESISTOR or not component.pn:
+            if (component.component_type == data_types.ComponentType.RESISTOR and component.details.value != 0) \
+                    or not component.pn:
                 errors += "No %s value\n" % type_str
-            component.details.value = -1
+                component.details.value = -1
     if errors:
         global warning
         warning += 'Component in row %i file %s  is incorrect: ' % (component.row, component.filename)
@@ -263,19 +284,23 @@ def get_main_comp_data(row_addr: Row) -> Optional[data_types.Component]:
     """
     if check_for_not_used(row_addr):
         return None
-    pn: str = get_value('pn', *row_addr) if get_value('pn', *row_addr) else ""
+    pn: str = str(get_value('pn', *row_addr)) if get_value('pn', *row_addr) else ""
     if pn == "NU":
         return None
     if pn == '-':
         pn = ""
     comp_type: data_types.ComponentType = get_component_type(get_value('type', *row_addr))
-    footprint: str = get_footprint_data(get_value('footprint', *row_addr), comp_type)
+    footprint: str = get_footprint_data(str(get_value('footprint', *row_addr)), comp_type)
+    if comp_type == data_types.ComponentType.OTHER:
+        footprint_in_bom = str(get_value('footprint', *row_addr))
+        if ":" in footprint_in_bom:
+            comp_type = get_component_type_by_footprint(footprint_in_bom)
     pn_alternative: List[str] = [get_value('pn alternative 1', *row_addr), get_value('pn alternative 2', *row_addr)]
     # remove empty alternative pns
     pn_alternative = [x for x in pn_alternative if x]
     designator_raw: str = get_value('designator', *row_addr)
     designator: List[str] = designator_raw.split(', ') if designator_raw else list()
-    if not designator and not footprint and not pn:
+    if not designator and not pn and (not footprint or footprint == 'None'):
         return None
     component = data_types.Component(row=row_addr[1], component_type=comp_type, footprint=footprint,
                                      pn=pn, manufacturer=get_value('manufacturer', *row_addr),

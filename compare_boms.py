@@ -21,11 +21,24 @@ def get_comp_list_precise(components: List[data_types.Component]) -> Tuple[List[
                                          if component.component_type == data_types.ComponentType.CAPACITOR]
     resistors: List[Tuple[Union[float, str], str]] = [(component.details.value, component.footprint)
                                                       for component in components
-                                                      if component.component_type == data_types.ComponentType.RESISTOR]
+                                                      if component.component_type == data_types.ComponentType.RESISTOR
+                                                      and component.details.value != -1]
     inductors: List[Tuple[Union[float, str], str]] = [(component.details.value, component.footprint)
                                                       for component in components
                                                       if component.component_type == data_types.ComponentType.INDUCTOR]
     return pns, capacitors, resistors, inductors
+
+
+def check_component(component: data_types.Component) -> bool:
+    """
+    checks if compoment is correct
+    :param component: component
+    :return: True of False
+    """
+    if component.component_type == data_types.ComponentType.RESISTOR and component.details \
+            and component.details.value == -1:
+        return False
+    return True
 
 
 def get_diff(first: List[Any], second: List[Any]):
@@ -52,9 +65,9 @@ def print_diff_data(first: List[ParamData], second: List[ParamData], type_str: s
     if plus:
         print("Added %s in second file:" % type_str)
         print(plus)
-    if minus:
-        print("Deleted %s in second file:" % type_str)
-        print(minus)
+    # if minus:
+    #     print("Deleted %s in second file:" % type_str)
+    #     print(minus)
 
 
 def find_new_pns(old: List[data_types.Component], new: List[data_types.Component]):
@@ -114,7 +127,7 @@ def find_components_in_list(key_component: data_types.Component, components: Lis
         return None
     if key_component.component_type in [data_types.ComponentType.RESISTOR, data_types.ComponentType.INDUCTOR]:
         for component in same_time_components:
-            if component.details.value == key_component.details.value:
+            if component.details.value == key_component.details.value and component.details.value != -1:
                 if component.footprint == key_component.footprint:
                     if component.component_type == key_component.component_type:
                         return component
@@ -147,7 +160,10 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
     """
     join_the_same(old)
     join_the_same(new)
-    print("DETAILED COMPARING THE SAME POSITIONS:\n")
+    if not only_quantity:
+        print("DETAILED COMPARING THE SAME POSITIONS:\n")
+    else:
+        print("QUANTITY CHANGED")
     old_sorted = sorted(old, key=lambda x: x.row)
     for component in old_sorted:
         paired = find_components_in_list(component, new)
@@ -173,3 +189,8 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
             if warning:
                 print("For %s, former row %i, new row %i changes are the following: \n" %
                       (get_pn(component), component.row, paired.row) + warning)
+        if not paired:
+            if check_component(component):
+                print("For %s, former row %i changes are the following:" %
+                     (get_pn(component), component.row))
+                print("Quantity changed: was %i, now 0" % len(component.designator))
