@@ -53,22 +53,25 @@ def get_diff(first: List[Any], second: List[Any]):
     return f_set.difference(s_set), s_set.difference(f_set)
 
 
-def print_diff_data(first: List[ParamData], second: List[ParamData], type_str: str, deleted: bool):
+def get_diff_data(first: List[ParamData], second: List[ParamData], type_str: str, deleted: bool) -> \
+        Tuple[set, set, str]:
     """
     prints added and deleted elements of two lists
     :param deleted: print or not deleted positions
     :param first: list with first data
     :param second: list with second data
     :param type_str: description of data compared
-    :return:
+    :return: result of diff
     """
     plus, minus = get_diff(second, first)
+    res = ""
     if plus:
-        print("Added %s in second file:" % type_str)
-        print(plus)
+        res += "Added %s in second file:" % type_str
+        res += str(plus)
     if deleted and minus:
-        print("Deleted %s in second file:" % type_str)
-        print(minus)
+        res += " Deleted %s in second file:" % type_str
+        res += str(minus)
+    return plus, minus, res
 
 
 def find_new_pns(old: List[data_types.Component], new: List[data_types.Component], deleted: bool):
@@ -82,10 +85,11 @@ def find_new_pns(old: List[data_types.Component], new: List[data_types.Component
     old_pn, old_cap, old_res, old_ind = get_comp_list_precise(old)
     new_pn, new_cap, new_res, new_ind = get_comp_list_precise(new)
     print("COMPONENT DIFFERENCE:\n")
-    print_diff_data(old_pn, new_pn, "partnumbers", deleted)
-    print_diff_data(old_cap, new_cap, "capacitors", deleted)
-    print_diff_data(old_res, new_res, "resistors", deleted)
-    print_diff_data(old_ind, new_ind, "inductors", deleted)
+    _, _, str_pn = get_diff_data(old_pn, new_pn, "partnumbers", deleted)
+    _, _, str_cap = get_diff_data(old_cap, new_cap, "capacitors", deleted)
+    _, _, str_res = get_diff_data(old_res, new_res, "resistors", deleted)
+    _, _, str_ind = get_diff_data(old_ind, new_ind, "inductors", deleted)
+    print(str_pn + '\n' + str_cap + '\n' + str_res + '\n' + str_ind + '\n')
 
 
 def join_the_same(components: List[data_types.Component]):
@@ -94,7 +98,7 @@ def join_the_same(components: List[data_types.Component]):
     :param components: 
     :return: 
     """
-    similar, _, _ = duplicates.compare_pns(components, precise=True)
+    similar, _, _, _ = duplicates.compare_pns(components, precise=True)
     similar_sorted: List[Tuple[str, int, int, str, int, int]] = sorted(similar, key=lambda x: x[3], reverse=True)
     for pair in similar_sorted:
         first_index: int = pair[2]

@@ -145,7 +145,7 @@ def get_footprint_data(footprint_str: str, comp_type: data_types.ComponentType) 
                 return footprint_str_new[1:].split('_')[0]
     if comp_type is data_types.ComponentType.CRYSTAL:
         if footprint_str_new.lower().startswith('cry'):
-            return footprint_str_new[4:]
+            return footprint_str_new[4:].split('_')[0]
     return footprint_str_new
 
 
@@ -202,7 +202,7 @@ def get_capacitor_data(row_addr: Row) -> data_types.Capacitor:
                 global warning
                 warning += 'Dielectric from BOM does not match capacitor value in %i row\n' % row_addr[1]
     try:
-        voltage = get_value('voltage', *row_addr).lower().replace("v", "")
+        voltage = float(get_value('voltage', *row_addr).lower().replace("v", ""))
     except (ValueError, AttributeError):
         voltage = 0
     try:
@@ -269,7 +269,7 @@ def check_for_not_used(row_addr: Row) -> bool:
     :param row_addr: information about sheei and row
     :return: true or false
     """
-    for i in range(1, row_addr[0].max_column):
+    for i in range(1, row_addr[0].max_column+1):
         cell = row_addr[0].cell(row=row_addr[1], column=i)
         if cell.value and "not used" in str(cell.value).lower():
             return True
@@ -310,11 +310,11 @@ def get_main_comp_data(row_addr: Row) -> Optional[data_types.Component]:
     return component
 
 
-def get_components_from_xlxs(filename) -> List[data_types.Component]:
+def get_components_from_xlxs(filename) -> Tuple[List[data_types.Component], str]:
     """
     parce Bom to get component list
     :param filename: name of BOM
-    :return: component list
+    :return: component list, warning str
     """
     global warning
     warning = ""
@@ -338,5 +338,5 @@ def get_components_from_xlxs(filename) -> List[data_types.Component]:
         validate_and_repair(component)
         result.append(component)
     if warning:
-        print('WARNINGS FOR %s:\n' % filename.upper(), warning)
-    return result
+        warning = 'WARNINGS FOR %s:\n' % filename.upper() + warning
+    return result, warning

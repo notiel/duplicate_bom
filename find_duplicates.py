@@ -26,12 +26,15 @@ def find_similar():
                 if os.path.splitext(filename)[1].lower() == '.xlsx' \
                         and os.access(os.path.join(path, filename), os.R_OK):
                     try:
-                        components_list.extend(xlsx_parce.get_components_from_xlxs(os.path.join(path, filename)))
+                        data, _ = xlsx_parce.get_components_from_xlxs(os.path.join(path, filename))
+                        components_list.extend(data)
                     except PermissionError:
                         pass
         else:
-            components_list: List[data_types.Component] = xlsx_parce.get_components_from_xlxs(path)
-        equal, similar, alternative = duplicates.compare_pns(components_list, root_len=8, precise=False)
+            components_list: List[data_types.Component] = xlsx_parce.get_components_from_xlxs(path)[0]
+        equal, similar, alternative, error = duplicates.compare_pns(components_list, root_len=8, precise=False)
+        if error:
+            print(error)
         if equal:
             print("These rows have equal pns:\n")
             print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in equal])
@@ -41,8 +44,15 @@ def find_similar():
         if alternative:
             print('These rows have similar alternative pn:\n')
             print([(pn1, row1, pn2, row2) for (pn1, row1, in1, pn2, row2, ind2) in alternative])
-        duplicates.compare_capacitors(components_list)
-        duplicates.compare_resistors(components_list)
+        similar_caps = duplicates.compare_capacitors(components_list)
+        if similar_caps:
+            print("Those capacitors are similar:")
+            print(similar_caps)
+        similar_resistors = duplicates.compare_resistors(components_list)
+        if similar_resistors:
+            print("Similar resistor rows: ")
+            print(similar_resistors)
+
         print("Search in %s complited" % path)
     else:
         print("Incorrect filename")
@@ -60,8 +70,10 @@ def compare_boms_new_pns(quantity=False, detailed=False):
             or os.path.isdir(sys.argv[3]):
         print("Both files should be existing files (not folders)")
         return
-    old = xlsx_parce.get_components_from_xlxs(sys.argv[2])
-    new = xlsx_parce.get_components_from_xlxs(sys.argv[3])
+    old, warning = xlsx_parce.get_components_from_xlxs(sys.argv[2])
+    print(warning)
+    new, warning = xlsx_parce.get_components_from_xlxs(sys.argv[3])
+    print(warning)
     compare_boms.find_new_pns(old, new, not quantity)
     if detailed:
         compare_boms.detail_compare(old, new, False)
