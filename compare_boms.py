@@ -100,6 +100,8 @@ def join_the_same(components: List[data_types.Component]):
     """
     similar, _, _, _ = duplicates.compare_pns(components, precise=True)
     similar_sorted: List[Tuple[str, int, int, str, int, int]] = sorted(similar, key=lambda x: x[3], reverse=True)
+    # res_sorted: List[Tuple[str, int, int, str, int, int]] = sorted(similar, key=lambda x: x[3], reverse=True)
+    # cap_sorted: List[Tuple[str, int, int, str, int, int]] = sorted(similar, key=lambda x: x[3], reverse=True)
     for pair in similar_sorted:
         first_index: int = pair[2]
         second_index: int = pair[5]
@@ -107,6 +109,28 @@ def join_the_same(components: List[data_types.Component]):
         components[first_index].description += components[second_index].description
     for pair in similar_sorted:
         components.pop(pair[5])
+    similar_cap = duplicates.compare_capacitors(components)
+    similar_cap_sorted: List[Tuple[str, str, int, str, str, int]] = sorted(similar_cap, key=lambda x: x[1],
+                                                                           reverse=True)
+    for pair in similar_cap_sorted:
+        first_index: int = components.index([component for component in components if component.row == pair[2]][0])
+        second_index: int = components.index([component for component in components if component.row == pair[5]][0])
+        components[first_index].designator.extend(components[second_index].designator)
+        components[first_index].description += components[second_index].description
+    for pair in similar_cap:
+        second_index: int = components.index([component for component in components if component.row == pair[5]][0])
+        components.pop(second_index)
+    similar_res = duplicates.compare_resistors(components)
+    similar_res_sorted: List[Tuple[str, str, int, str, str, int]] = sorted(similar_res, key=lambda x: x[1],
+                                                                           reverse=True)
+    for pair in similar_res_sorted:
+        first_index: int = components.index([component for component in components if component.row == pair[2]][0])
+        second_index: int = components.index([component for component in components if component.row == pair[5]][0])
+        components[first_index].designator.extend(components[second_index].designator)
+        components[first_index].description += components[second_index].description
+    for pair in similar_res:
+        second_index: int = components.index([component for component in components if component.row == pair[5]][0])
+        components.pop(second_index)
 
 
 def find_components_in_list(key_component: data_types.Component, components: List[data_types.Component]) \

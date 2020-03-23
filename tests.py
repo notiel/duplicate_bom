@@ -16,10 +16,10 @@ Deleted partnumbers in second file:{{('KX-6 37.4 MHz 10/10ppm 18pF', '2520'), ('
 
 filename = "test_data\\v2.1.xlsx"
 filename_new = "test_data\\v2.1.xlsx"
-filename_old = 'test_data\\BOM_Orig.xlsx'
+filename_old = 'test_data\\V1.6.xlsx'
 filename_duplicate = 'test_data\\BOM_Test.xlsx'
 
-types_etalon = {1: 14, 5: 9, 8: 1, 2: 2, 4: 1, 7: 3, 3: 3, 0: 30, 11: 1}
+types_etalon = {1: 14, 5: 9, 8: 1, 2: 2, 4: 2, 7: 3, 3: 3, 0: 30, 11: 1}
 
 
 class XLSXParceTest(unittest.TestCase):
@@ -28,7 +28,7 @@ class XLSXParceTest(unittest.TestCase):
         self.data, self.warning = xlsx_parce.get_components_from_xlxs(filename)
 
     def testRowNumber(self):
-        self.assertEqual(len(self.data), 64)
+        self.assertEqual(len(self.data), 65)
 
     def testNotUsed(self):
         self.assertEqual(self.warning.count('not used'), 3)
@@ -133,7 +133,8 @@ class CompareTest(unittest.TestCase):
 
     def testEqualPns(self):
         equal, _, _, _ = duplicates.compare_pns(self.data, 8, False)
-        self.assertEqual(equal, [(filename_duplicate.split('\\')[1], 17, 3, filename_duplicate.split('\\')[1], 35, 4)])
+        self.assertEqual(equal, [(filename_duplicate.split('\\')[1], 17, 13,
+                                  filename_duplicate.split('\\')[1], 35, 31)])
 
     def testSimilarPns(self):
         _, similar, _, _ = duplicates.compare_pns(self.data, 5, False)
@@ -153,7 +154,8 @@ class CompareTest(unittest.TestCase):
 
     def testPNPrecise(self):
         equal, similar, alt, _ = duplicates.compare_pns(self.data, 8, True)
-        self.assertEqual(equal, [(filename_duplicate.split('\\')[1], 17, 3, filename_duplicate.split('\\')[1], 35, 4)])
+        self.assertEqual(equal,
+                         [(filename_duplicate.split('\\')[1], 17, 13, filename_duplicate.split('\\')[1], 35, 31)])
         self.assertEqual(similar, list())
         self.assertEqual(alt, list())
 
@@ -182,27 +184,57 @@ class CompareBoms(unittest.TestCase):
 
     def testPNDiff(self):
         plus, minus, _ = compare_boms.get_diff_data(self.old_pn, self.new_pn, "partnumbers", True)
-        self.assertEqual(plus, {('BAT54HT1G', 'SOD323')})
-        self.assertEqual(minus, {('AP6398S', 'AP6356S'), ('KX-6 37.4 MHz 10/10ppm 18pF', '2520'),
-                                 ('LMBR160FT1G', 'SOD123-FL'), ('U.FL-R-SMT-1', 'U.FL-R-SMT-1'),
+        self.assertEqual(plus, {('LMBR160FT1G', 'SOD123-FL')})
+        self.assertEqual(minus, {('AP6398S', 'AP6356S'),
+                                 ('KX-6 37.4 MHz 10/10ppm 18pF', '2520'),
+                                 ('NU/LMBR160FT1G', 'SOD123-FL'),
+                                 ('U.FL-R-SMT-1', 'U.FL-R-SMT-1'),
                                  ('WPM3401', 'SOT23')})
 
     def testCapDiff(self):
         plus, minus, _ = compare_boms.get_diff_data(self.old_cap, self.new_cap, "capacitors", True)
-        # todo change data to have differences
-        self.assertEqual(plus, set())
-        self.assertEqual(minus, {('10pf', '0402')})
+        self.assertEqual(plus, {('18pf', '0603')})
+        self.assertEqual(minus, {('10pf', '0402'), ('18pf', '0402')})
 
     def testResDiff(self):
         plus, minus, _ = compare_boms.get_diff_data(self.old_res, self.new_res, "resistors", True)
-        # todo change data to have differences
-        self.assertEqual(plus, set())
-        self.assertEqual(minus, set())
+        self.assertEqual(plus, {('12000R', '0402')})
+        self.assertEqual(minus, {('127000R', '0402')})
 
     def testNoDeleted(self):
         _, _, res = compare_boms.get_diff_data(self.old_pn, self.new_pn, "partnumbers", False)
         self.assertFalse('deleted' in res.lower())
 
+    def testComponentsInList(self):
+        self.assertEqual(self.new[3], compare_boms.find_components_in_list(self.old[3], self.new))
+
+    def testAbsentComponents(self):
+        component = [component for component in self.old if component.pn == 'AP6398S'][0]
+        self.assertIsNone(compare_boms.find_components_in_list(component, self.new))
+
+
+class TestJoin(unittest.TestCase):
+
+    def setUp(self):
+        self.new, _ = xlsx_parce.get_components_from_xlxs(filename_new)
+        self.old, _ = xlsx_parce.get_components_from_xlxs(filename_old)
+        self.old_len = len(self.old)
+        compare_boms.join_the_same(self.old)
+
+    def testJoinPN(self):
+        self.assertEqual(len(self.old) + 3, self.old_len)
+        joined_component = [component for component in self.old if component.pn == 'TLV62569PDDC'][0]
+        self.assertEqual(len(joined_component.designator), 4)
+
+    def testJoinCap(self):
+        joined_cap = [component for component in self.old if component.row == 8][0]
+        self.assertEqual(len(joined_cap.designator), 8)
+        self.assertTrue('C250' in joined_cap.designator)
+
+    def testJoinRes(self):
+        joined_res = [component for component in self.old if component.row == 49][0]
+        self.assertEqual(len(joined_res.designator), 5)
+        self.assertTrue('R200' in joined_res.designator)
 
     # def testCorrect(self):
     #    component_false = [component for component in self.old if component.row == 46][0]
@@ -211,6 +243,25 @@ class CompareBoms(unittest.TestCase):
     def tearUp(self):
         self.new = self.old = self.old_pn = self.old_cap = self.old.res = self.old_ind = self.new_cap = list()
         self.new_pn = self.new_res = self.new_ind = list()
+
+
+class TestPNDescription(unittest.TestCase):
+
+    def setUp(self):
+        self.new, _ = xlsx_parce.get_components_from_xlxs(filename_new)
+        self.old, _ = xlsx_parce.get_components_from_xlxs(filename_old)
+
+    def testPNDescription(self):
+        self.assertEqual(compare_boms.get_pn(self.new[16]), 'PN: KLM8G1GETF-B041, footprint: BGA153')
+
+    def testCapDescription(self):
+        self.assertEqual(compare_boms.get_pn(self.new[5]), "CAPACITOR with value 1u, footprint: 0402")
+
+    def testResDescription(self):
+        self.assertEqual(compare_boms.get_pn(self.new[60]), 'RESISTOR with value 240R, footprint: 0402')
+
+    def testInsuctor(self):
+        self.assertEqual(compare_boms.get_pn(self.new[30]), 'PN: LQH3NPN4R7MGR, footprint: LQH3NPN')
 
 
 if __name__ == '__main__':

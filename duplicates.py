@@ -38,7 +38,8 @@ def compare_pns(components: List[data_types.Component], root_len: int = 8, preci
                         != next_comp.component_type.name.lower():
                     warning += "Components in file %s row %i and  file %s row %i have same partnumbers but different " \
                                "type\n" % (component.filename, component.row, next_comp.filename, next_comp.row)
-                equal.append((component.filename, component.row, index, next_comp.filename, next_comp.row, index+1))
+            equal.append((component.filename, component.row, components.index(component),
+                          next_comp.filename, next_comp.row, components.index(next_comp)))
         if not precise:
             if component.component_type not in data_types.parametrized and len(component.footprint) >= 4:
                 next_index = index + 1
@@ -71,7 +72,7 @@ def compare_capacitors(components: List[data_types.Component]) -> List[Tuple[str
     cap_sorted: List[data_types.Component] = sorted([component for component in components
                                                      if component.component_type == data_types.ComponentType.CAPACITOR
                                                      and component.details.absolute_pf_value],
-                                                    key=lambda x: x.details.absolute_pf_value)
+                                                      key=lambda x: x.details.absolute_pf_value)
     if len(cap_sorted) < 2:
         return list()
     for (index, cap) in enumerate(cap_sorted):
