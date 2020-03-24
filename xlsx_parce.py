@@ -5,11 +5,12 @@ from openpyxl import load_workbook, worksheet
 from typing import List, Optional, Union, Tuple, Any, Dict
 from string import ascii_uppercase
 import os
+from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
 
 import data_types
 
 headers = ['type', 'pn', 'manufacturer', 'pn alternative 1', 'pn alternative 2', 'designator', 'footprint',
-           'dielectric', 'value', 'voltage', 'tolerance', 'description', 'ref', 'reference']
+           'dielectric', 'value', 'voltage', 'tolerance', 'description', 'ref', 'reference', 'quantity']
 recommended = ['type', 'pn', 'designator', 'footprint', 'value']
 multiplier = {'m': 6, 'k': 3, 'r': 0}
 warning = ""
@@ -178,8 +179,8 @@ def get_resistor_data(row_addr: Row) -> data_types.Resistor:
     :param row_addr:
     :return: resistor instance
     """
-    value:  Optional[Union[float, int]] = get_resistor_value(get_value('value', *row_addr))
-    if not value and value != 0:
+    value:  Optional[Union[float, int]] = get_resistor_value(str(get_value('value', *row_addr)))
+    if value is None:
         value = -1
     resistor = data_types.Resistor(value=value, tolerance=get_value('tolerance', *row_addr))
     return resistor
@@ -254,7 +255,7 @@ def validate_and_repair(component: data_types.Component):
         elif not component.details.value:
             # we may not have value for inductors
             if (component.component_type == data_types.ComponentType.RESISTOR and component.details.value != 0) \
-                    or not component.pn:
+                    or (component.component_type == data_types.ComponentType.INDUCTOR and not component.pn):
                 errors += "No %s value\n" % type_str
                 component.details.value = -1
     if errors:

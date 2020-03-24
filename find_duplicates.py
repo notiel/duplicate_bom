@@ -94,3 +94,4 @@ if __name__ == '__main__':
         find_similar()
     else:
         print("Wrong parameter")
+

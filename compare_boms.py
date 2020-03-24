@@ -196,8 +196,6 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
         print("QUANTITY CHANGED")
     old_sorted = sorted(old, key=lambda x: x.row)
     for component in old_sorted:
-        if component.pn.startswith('DD1274AS'):
-            print("here")
         paired = find_components_in_list(component, new)
         if paired:
             warning = ""
@@ -207,7 +205,7 @@ def detail_compare(old: List[data_types.Component], new: List[data_types.Compone
             else:
                 if component.component_type != paired.component_type:
                     warning += "Type: was %s and now %s\n" % \
-                               (data_types.types[component.component_type], data_types.types[paired.component_type])
+                               (component.component_type.name, paired.component_type.name)
                 if component.manufacturer != paired.manufacturer:
                     warning += "Manufacturer: was %s and now %s\n" % (component.manufacturer, paired.manufacturer)
 

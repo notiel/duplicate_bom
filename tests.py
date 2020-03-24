@@ -7,7 +7,7 @@ import compare_boms
 
 header_index_etalon = {'type': 1, 'pn': 2, 'manufacturer': 3, 'pn alternative 1': 4, 'pn alternative 2': 5,
                        'designator': 6, 'footprint': 7, 'dielectric': 8, 'value': 9, 'voltage': 10, 'tolerance': 11,
-                       'description': 12, 'ref': None, 'reference': None}
+                       'description': 12, 'ref': None, 'reference': None, 'quantity': 13}
 
 pn_diff_etalon = """
 Added partnumbers in second file:{('BAT54HT1G', 'SOD323')} 
